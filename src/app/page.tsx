@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { PlanningCanvas } from '@/components/PlanningCanvas';
-import { DndProvider } from '@/components/DndProvider';
 import { Button } from '@/components/ui/button';
 import { usePlanningStore } from '@/stores/planning-store';
 import { Plus } from 'lucide-react';
@@ -75,12 +74,10 @@ export default function Home() {
           </p>
         </div>
 
-        <DndProvider>
-          <PlanningCanvas
-            onStoryClick={handleStoryClick}
-            onStoryDoubleClick={handleStoryDoubleClick}
-          />
-        </DndProvider>
+        <PlanningCanvas
+          onStoryClick={handleStoryClick}
+          onStoryDoubleClick={handleStoryDoubleClick}
+        />
 
         {currentSession.stories.length === 0 && (
           <div className="text-center py-12">

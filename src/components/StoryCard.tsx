@@ -54,7 +54,9 @@ export const StoryCard: React.FC<StoryCardProps> = ({
     const isCurrentlyDragging = isDragging || isDraggingFromHook;
 
     const style = transform ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        // Invert the x transform to match our corrected drag direction
+        // This ensures the visual drag follows the mouse correctly
+        transform: `translate3d(${-transform.x}px, ${transform.y}px, 0)`,
     } : undefined;
     return (
         <Card
@@ -62,7 +64,8 @@ export const StoryCard: React.FC<StoryCardProps> = ({
             style={style}
             role="article"
             aria-label={`Story: ${story.title}${story.isAnchor ? ' (Anchor Story)' : ''}`}
-            tabIndex={onClick ? 0 : undefined}
+            tabIndex={enableDrag ? 0 : (onClick ? 0 : undefined)}
+            data-story-id={story.id}
             className={cn(
                 // Base styles
                 'cursor-pointer select-none transition-all duration-200 ease-in-out relative',
