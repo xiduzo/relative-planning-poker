@@ -1,49 +1,48 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { PlanningCanvas } from '@/components/PlanningCanvas';
-import { Button } from '@/components/ui/button';
-import { usePlanningStore } from '@/stores/planning-store';
-import { Plus } from 'lucide-react';
-import type { Story } from '@/types';
+import React from 'react'
+import { PlanningCanvas } from '@/components/PlanningCanvas'
+import { StoryDialog } from '@/components/StoryDialog'
+import { Button } from '@/components/ui/button'
+import { usePlanningStore } from '@/stores/planning-store'
+import { useDialogStore } from '@/stores/dialog-store'
+import { Plus } from 'lucide-react'
+import type { Story } from '@/types'
 
 export default function Home() {
-  const { currentSession, createSession, addStory } = usePlanningStore();
+  const { currentSession, createSession } = usePlanningStore()
+  const { openAddStoryDialog, openEditStoryDialog } = useDialogStore()
 
   React.useEffect(() => {
     // Create a demo session if none exists
     if (!currentSession) {
-      createSession('Demo Planning Session');
+      createSession('Demo Planning Session')
     }
-  }, [currentSession, createSession]);
-
-  const handleAddStory = () => {
-    const storyCount = currentSession?.stories.length || 0;
-    addStory({
-      title: `Story ${storyCount + 1}`,
-      description: `This is a sample story for testing drag and drop functionality. Story number ${storyCount + 1}.`,
-    });
-  };
+  }, [currentSession, createSession])
 
   const handleStoryClick = (story: Story) => {
-    console.log('Story clicked:', story.title);
-    // TODO: Implement story editing functionality
-  };
+    console.log('Story clicked:', story.title)
+    // Open edit dialog when story is clicked
+    openEditStoryDialog(story)
+  }
 
   const handleStoryDoubleClick = (story: Story) => {
-    console.log('Story double-clicked:', story.title);
-    // TODO: Implement quick edit functionality
-  };
+    console.log('Story double-clicked:', story.title)
+    // Open edit dialog when story is double-clicked
+    openEditStoryDialog(story)
+  }
 
   if (!currentSession) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Loading...</h1>
-          <p className="text-muted-foreground">Setting up your planning session</p>
+          <p className="text-muted-foreground">
+            Setting up your planning session
+          </p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -57,7 +56,7 @@ export default function Home() {
                 Session: {currentSession.name}
               </p>
             </div>
-            <Button onClick={handleAddStory} className="gap-2">
+            <Button onClick={openAddStoryDialog} className="gap-2">
               <Plus className="w-4 h-4" />
               Add Story
             </Button>
@@ -69,8 +68,9 @@ export default function Home() {
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-2">Stories</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Drag stories left or right to indicate relative complexity. 
-            Left = Lower complexity, Right = Higher complexity.
+            Drag stories left or right to indicate relative complexity. Left =
+            Lower complexity, Right = Higher complexity. Click or double-click a
+            story to edit it.
           </p>
         </div>
 
@@ -81,13 +81,19 @@ export default function Home() {
 
         {currentSession.stories.length === 0 && (
           <div className="text-center py-12">
-            <Button onClick={handleAddStory} variant="outline" className="gap-2">
+            <Button
+              onClick={openAddStoryDialog}
+              variant="outline"
+              className="gap-2"
+            >
               <Plus className="w-4 h-4" />
               Add Your First Story
             </Button>
           </div>
         )}
       </main>
+
+      <StoryDialog />
     </div>
-  );
+  )
 }

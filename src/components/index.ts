@@ -9,3 +9,5 @@ export { PlanningCanvas } from './PlanningCanvas';
 export type { PlanningCanvasProps } from './PlanningCanvas';
 
 export { DndProvider } from './DndProvider';
+
+export { StoryDialog } from './StoryDialog';
