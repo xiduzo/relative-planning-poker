@@ -17,13 +17,23 @@ import {
   DragOverEvent,
   DragMoveEvent,
 } from '@dnd-kit/core'
-import {
-  restrictToHorizontalAxis,
-  restrictToParentElement,
-} from '@dnd-kit/modifiers'
+import { restrictToParentElement } from '@dnd-kit/modifiers'
 import { StoryCard } from './StoryCard'
 import { usePlanningStore } from '@/stores/planning-store'
 import type { Story } from '@/types'
+
+// Context for sharing canvas ref
+const CanvasContext = React.createContext<
+  React.RefObject<HTMLDivElement | null>
+>(React.createRef())
+
+export const useCanvasRef = () => {
+  const context = React.useContext(CanvasContext)
+  if (!context) {
+    throw new Error('useCanvasRef must be used within DndProvider')
+  }
+  return context
+}
 
 interface DndProviderProps {
   children: React.ReactNode
@@ -35,6 +45,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
     x: number
     y: number
   } | null>(null)
+  const canvasRef = React.useRef<HTMLDivElement>(null)
   const updateStoryPosition = usePlanningStore(
     state => state.updateStoryPosition
   )
@@ -44,7 +55,9 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Only handle arrow keys
-      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+      if (
+        !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)
+      ) {
         return
       }
 
@@ -68,12 +81,35 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
         return
       }
 
+      // Don't allow moving anchor stories
+      if (story.isAnchor) {
+        return
+      }
+
       // Calculate position change (same increment as drag snapping)
-      const positionChange = event.key === 'ArrowRight' ? 5 : -5
-      const newPosition = Math.max(
-        -100,
-        Math.min(100, story.position + positionChange)
-      )
+      const positionChange = 5
+      let newX = story.position.x
+      let newY = story.position.y
+
+      switch (event.key) {
+        case 'ArrowRight':
+          newX += positionChange
+          break
+        case 'ArrowLeft':
+          newX -= positionChange
+          break
+        case 'ArrowDown':
+          newY += positionChange
+          break
+        case 'ArrowUp':
+          newY -= positionChange
+          break
+      }
+
+      const newPosition = {
+        x: Math.max(-100, Math.min(100, newX)),
+        y: Math.max(-100, Math.min(100, newY)),
+      }
 
       updateStoryPosition(storyId, newPosition)
     }
@@ -107,10 +143,10 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   }
 
   const handleDragMove = (event: DragMoveEvent) => {
-    // Update the drag transform for the overlay with inverted x coordinate
+    // Update the drag transform for the overlay
     if (event.delta) {
       setDragTransform({
-        x: -event.delta.x, // Invert x to match our corrected direction
+        x: event.delta.x,
         y: event.delta.y,
       })
     }
@@ -124,20 +160,39 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
     const { active, delta } = event
     const story = active.data.current?.story as Story
 
-    if (story && delta.x !== 0) {
+    if (story && (delta.x !== 0 || delta.y !== 0)) {
+      // Don't allow moving anchor stories
+      if (story.isAnchor) {
+        setActiveStory(null)
+        setDragTransform(null)
+        return
+      }
+
+      // Get canvas dimensions for position calculation
+      const canvas = canvasRef.current
+      if (!canvas) {
+        setActiveStory(null)
+        setDragTransform(null)
+        return
+      }
+
+      const canvasRect = canvas.getBoundingClientRect()
+
       // Calculate new position based on drag delta
       // Convert pixel movement to position scale (-100 to 100)
-      // Invert delta.x because DnD Kit's coordinate system is opposite to our expectation
-      // Drag right should increase position (higher complexity)
-      // Drag left should decrease position (lower complexity)
-      const positionDelta = -(delta.x / 400) * 100 // 400px = full range, inverted
-      const newPosition = Math.max(
-        -100,
-        Math.min(100, story.position + positionDelta)
-      )
+      const positionDeltaX = (delta.x / canvasRect.width) * 200
+      const positionDeltaY = (delta.y / canvasRect.height) * 200
+
+      const newPosition = {
+        x: Math.max(-100, Math.min(100, story.position.x + positionDeltaX)),
+        y: Math.max(-100, Math.min(100, story.position.y + positionDeltaY)),
+      }
 
       // Snap to nearest 5-unit increment for cleaner positioning
-      const snappedPosition = Math.round(newPosition / 5) * 5
+      const snappedPosition = {
+        x: Math.round(newPosition.x / 5) * 5,
+        y: Math.round(newPosition.y / 5) * 5,
+      }
 
       updateStoryPosition(story.id, snappedPosition)
     }
@@ -152,42 +207,44 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragMove={handleDragMove}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-      modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
-    >
-      {children}
+    <CanvasContext.Provider value={canvasRef}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+        modifiers={[restrictToParentElement]}
+      >
+        {children}
 
-      <DragOverlay>
-        {activeStory ? (
-          <div
-            className="transform scale-105 opacity-90"
-            style={
-              dragTransform
-                ? {
-                    // Rotate based on drag direction: positive x = lean right, negative x = lean left
-                    transform: `translate3d(${dragTransform.x}px, ${dragTransform.y}px, 0) rotate(${Math.sign(dragTransform.x) * 3}deg) scale(1.05)`,
-                  }
-                : {
-                    transform: 'rotate(3deg) scale(1.05)', // Default rotation when not dragging
-                  }
-            }
-          >
-            <StoryCard
-              story={activeStory}
-              className="shadow-2xl border-primary/50 bg-background/95 backdrop-blur-sm"
-              enableDrag={false}
-            />
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay>
+          {activeStory ? (
+            <div
+              className="transform scale-105 opacity-90"
+              style={
+                dragTransform
+                  ? {
+                      // Rotate based on drag direction: positive x = lean right, negative x = lean left
+                      transform: `translate3d(${dragTransform.x}px, ${dragTransform.y}px, 0) rotate(${Math.sign(dragTransform.x) * 3}deg) scale(1.05)`,
+                    }
+                  : {
+                      transform: 'rotate(3deg) scale(1.05)', // Default rotation when not dragging
+                    }
+              }
+            >
+              <StoryCard
+                story={activeStory}
+                className="shadow-2xl border-primary/50 bg-background/95 backdrop-blur-sm"
+                enableDrag={false}
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+    </CanvasContext.Provider>
   )
 }
 

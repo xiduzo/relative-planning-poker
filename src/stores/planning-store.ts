@@ -15,7 +15,7 @@ import {
     PlanningSessionSchema
 } from '@/types';
 import { generateId } from '@/utils';
-import { normalizePosition } from '@/utils/position';
+import { normalizePosition2D, ANCHOR_POSITION } from '@/utils/position';
 
 export interface PlanningStore {
     // State
@@ -29,7 +29,7 @@ export interface PlanningStore {
     // Story management actions
     addStory: (input: CreateStoryInput) => void;
     updateStory: (storyId: string, updates: Partial<Pick<Story, 'title' | 'description'>>) => void;
-    updateStoryPosition: (storyId: string, position: number) => void;
+                updateStoryPosition: (storyId: string, position: { x: number; y: number }) => void;
     deleteStory: (storyId: string) => void;
 
     // Anchor story management
@@ -170,7 +170,7 @@ export const usePlanningStore = create<PlanningStore>()(
                     id: generateId(),
                     title: input.title.trim(),
                     description: input.description.trim(),
-                    position: 0, // Start at center (anchor position)
+                    position: ANCHOR_POSITION, // Start at center (anchor position)
                     isAnchor: isFirstStory,
                     createdAt: now,
                     updatedAt: now
@@ -230,7 +230,7 @@ export const usePlanningStore = create<PlanningStore>()(
                 saveSession(updatedSession);
             },
 
-            updateStoryPosition: (storyId: string, position: number) => {
+            updateStoryPosition: (storyId: string, position: { x: number; y: number }) => {
                 const { currentSession } = get();
                 if (!currentSession) {
                     throw new Error('No active session');
@@ -241,8 +241,14 @@ export const usePlanningStore = create<PlanningStore>()(
                     throw new Error('Story not found');
                 }
 
+                // Check if this is the anchor story - anchor stories cannot be moved
+                const story = currentSession.stories[storyIndex];
+                if (story.isAnchor) {
+                    throw new Error('Anchor story cannot be moved');
+                }
+
                 // Normalize position to valid range
-                const normalizedPosition = normalizePosition(position);
+                const normalizedPosition = normalizePosition2D(position);
                 const now = new Date();
 
                 const updatedStories = [...currentSession.stories];
@@ -273,6 +279,11 @@ export const usePlanningStore = create<PlanningStore>()(
                     throw new Error('Story not found');
                 }
 
+                // Prevent anchor story deletion when other stories exist
+                if (storyToDelete.isAnchor && currentSession.stories.length > 1) {
+                    throw new Error('Cannot delete anchor story when other stories exist');
+                }
+
                 const remainingStories = currentSession.stories.filter(s => s.id !== storyId);
                 const now = new Date();
 
@@ -280,10 +291,12 @@ export const usePlanningStore = create<PlanningStore>()(
 
                 // If we're deleting the anchor story, promote another story to anchor
                 if (storyToDelete.isAnchor && remainingStories.length > 0) {
-                    // Find the story closest to position 0 to be the new anchor
-                    const newAnchor = remainingStories.reduce((closest, story) =>
-                        Math.abs(story.position) < Math.abs(closest.position) ? story : closest
-                    );
+                    // Find the story closest to center (0,0) to be the new anchor
+                    const newAnchor = remainingStories.reduce((closest, story) => {
+                        const closestDistance = Math.sqrt(closest.position.x ** 2 + closest.position.y ** 2);
+                        const currentDistance = Math.sqrt(story.position.x ** 2 + story.position.y ** 2);
+                        return currentDistance < closestDistance ? story : closest;
+                    });
 
                     newAnchor.isAnchor = true;
                     newAnchorStoryId = newAnchor.id;
@@ -373,8 +386,8 @@ export const usePlanningStore = create<PlanningStore>()(
                 const storiesWithPoints = currentSession.stories.map(story => {
                     let storyPoints: number | null = null;
 
-                    // Find the appropriate point value based on cutoffs
-                    const sortedCutoffs = [...currentSession.pointCutoffs].sort((a, b) => a.position - b.position);
+                    // Find the appropriate point value based on cutoffs (using x-coordinate for complexity)
+                    const sortedCutoffs = [...currentSession.pointCutoffs].sort((a, b) => a.position.x - b.position.x);
 
                     for (let i = 0; i < sortedCutoffs.length; i++) {
                         const cutoff = sortedCutoffs[i];
@@ -382,13 +395,13 @@ export const usePlanningStore = create<PlanningStore>()(
 
                         if (nextCutoff) {
                             // Story is between this cutoff and the next
-                            if (story.position >= cutoff.position && story.position < nextCutoff.position) {
+                            if (story.position.x >= cutoff.position.x && story.position.x < nextCutoff.position.x) {
                                 storyPoints = cutoff.pointValue;
                                 break;
                             }
                         } else {
                             // This is the last cutoff, story is beyond it
-                            if (story.position >= cutoff.position) {
+                            if (story.position.x >= cutoff.position.x) {
                                 storyPoints = cutoff.pointValue;
                                 break;
                             }
@@ -399,7 +412,7 @@ export const usePlanningStore = create<PlanningStore>()(
                         title: story.title,
                         description: story.description,
                         storyPoints,
-                        relativePosition: story.position
+                        relativePosition: story.position.x // Use x-coordinate for complexity
                     };
                 });
 

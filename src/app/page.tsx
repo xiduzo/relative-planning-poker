@@ -62,9 +62,10 @@ export default function Home() {
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-2">Stories</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Drag stories left or right to indicate relative complexity. Left =
-            Lower complexity, Right = Higher complexity. Double-click a story to
-            edit it, or right-click for more options.
+            Drag stories in 2D space to position them relative to the anchor
+            story. Left/Right = Complexity (Lower/Higher), Up/Down = Uncertainty
+            (Lower/Higher). The anchor story (center) cannot be moved.
+            Double-click a story to edit it, or right-click for more options.
           </p>
         </div>
 
@@ -78,7 +79,7 @@ export default function Home() {
               className="gap-2"
             >
               <Plus className="w-4 h-4" />
-              Add Your First Story
+              Add Your Anchor Story
             </Button>
           </div>
         )}

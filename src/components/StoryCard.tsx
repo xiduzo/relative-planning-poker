@@ -21,7 +21,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import { Anchor, Edit, Trash2, Star } from 'lucide-react'
+import { Anchor, Edit, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Story } from '@/types'
 
@@ -48,12 +48,15 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   isDragging = false,
   enableDrag = true,
 }) => {
+  // Anchor stories cannot be dragged
+  const canDrag = enableDrag && !story.isAnchor
+
   const draggableProps = useDraggable({
     id: story.id,
     data: {
       story,
     },
-    disabled: !enableDrag,
+    disabled: !canDrag,
   })
 
   const {
@@ -175,9 +178,12 @@ export const StoryCard: React.FC<StoryCardProps> = ({
         className={cn(
           'absolute bottom-0 left-0 right-0 h-1 rounded-b-xl transition-colors',
           story.isAnchor && 'bg-primary/30',
-          !story.isAnchor && story.position < 0 && 'bg-green-400/60', // Lower complexity
-          !story.isAnchor && story.position > 0 && 'bg-orange-400/60', // Higher complexity
-          !story.isAnchor && story.position === 0 && 'bg-blue-400/60' // Same as anchor
+          !story.isAnchor && story.position.x < 0 && 'bg-green-400/60', // Lower complexity
+          !story.isAnchor && story.position.x > 0 && 'bg-orange-400/60', // Higher complexity
+          !story.isAnchor &&
+            story.position.x === 0 &&
+            story.position.y === 0 &&
+            'bg-blue-400/60' // Same as anchor
         )}
         aria-hidden="true"
         role="presentation"

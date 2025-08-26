@@ -18,7 +18,7 @@ const createTestStory = (overrides: Partial<Story> = {}): Story => ({
   id: 'test-story-1',
   title: 'Test Story',
   description: 'Test description',
-  position: 0,
+  position: { x: 0, y: 0 },
   isAnchor: false,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -125,7 +125,7 @@ describe('StoryCard', () => {
     })
 
     it('shows green for lower complexity (negative position)', () => {
-      const story = createTestStory({ position: -50 })
+      const story = createTestStory({ position: { x: -50, y: 0 } })
 
       const { container } = render(<StoryCard story={story} />)
       const indicator = container.querySelector('.absolute.bottom-0')
@@ -134,7 +134,7 @@ describe('StoryCard', () => {
     })
 
     it('shows orange for higher complexity (positive position)', () => {
-      const story = createTestStory({ position: 50 })
+      const story = createTestStory({ position: { x: 50, y: 0 } })
 
       const { container } = render(<StoryCard story={story} />)
       const indicator = container.querySelector('.absolute.bottom-0')
@@ -143,7 +143,7 @@ describe('StoryCard', () => {
     })
 
     it('shows blue for same complexity as anchor (position 0)', () => {
-      const story = createTestStory({ position: 0 })
+      const story = createTestStory({ position: { x: 0, y: 0 } })
 
       const { container } = render(<StoryCard story={story} />)
       const indicator = container.querySelector('.absolute.bottom-0')

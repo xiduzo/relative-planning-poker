@@ -10,6 +10,8 @@ import { StoryCard } from './StoryCard'
 import { usePlanningStore } from '@/stores/planning-store'
 import { useDialogStore } from '@/stores/dialog-store'
 import { cn } from '@/lib/utils'
+import { positionToPercentage } from '@/utils/position'
+import { useCanvasRef } from './DndProvider'
 import type { Story } from '@/types'
 
 export interface PlanningCanvasProps {
@@ -22,7 +24,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   onStoryDoubleClick,
 }) => {
   const currentSession = usePlanningStore(state => state.currentSession)
-  const canvasRef = React.useRef<HTMLDivElement>(null)
+  const canvasRef = useCanvasRef()
 
   // Set up droppable area for the entire canvas
   const { setNodeRef, isOver } = useDroppable({
@@ -36,12 +38,16 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   const combinedRef = React.useCallback(
     (node: HTMLDivElement | null) => {
       setNodeRef(node)
-      if (canvasRef.current !== node) {
+      if (node && canvasRef.current !== node) {
         canvasRef.current = node
       }
     },
-    [setNodeRef]
+    [setNodeRef, canvasRef]
   )
+
+  // Get store actions
+  const { setAnchorStory, deleteStory } = usePlanningStore()
+  const { openEditStoryDialog } = useDialogStore()
 
   if (!currentSession) {
     return (
@@ -50,10 +56,6 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
       </div>
     )
   }
-
-  // Get store actions only when we have a session
-  const { setAnchorStory, deleteStory } = usePlanningStore()
-  const { openEditStoryDialog } = useDialogStore()
 
   const handleEditStory = (story: Story) => {
     openEditStoryDialog(story)
@@ -103,11 +105,14 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
 
   return (
     <div className={cn('space-y-6', className)}>
-      {/* Horizontal Axis Visualization */}
+      {/* 2D Axis Visualization */}
       <div className="relative px-4">
         <div className="relative h-8 flex items-center">
-          {/* Main axis line */}
+          {/* X-axis line (Complexity) */}
           <div className="absolute inset-x-0 top-1/2 h-px bg-border -translate-y-1/2" />
+
+          {/* Y-axis line (Uncertainty) */}
+          <div className="absolute inset-y-0 left-1/2 w-px bg-border -translate-x-1/2" />
 
           {/* Complexity indicators */}
           <div className="absolute left-0 top-1/2 -translate-y-1/2">
@@ -118,7 +123,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
           </div>
 
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className="h-6 w-px bg-primary" />
+            <div className="h-6 w-6 bg-primary rounded-full border-2 border-background" />
             <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 whitespace-nowrap">
               <span className="text-xs text-primary font-medium">Anchor</span>
             </div>
@@ -132,21 +137,44 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
               </span>
             </div>
           </div>
+
+          {/* Uncertainty indicators */}
+          <div className="absolute left-1/2 top-0 -translate-x-1/2">
+            <div className="w-3 h-px bg-blue-500" />
+            <div className="absolute left-full ml-1 top-1/2 -translate-y-1/2 whitespace-nowrap">
+              <span className="text-xs text-blue-600 font-medium">Lower</span>
+            </div>
+          </div>
+
+          <div className="absolute left-1/2 bottom-0 -translate-x-1/2">
+            <div className="w-3 h-px bg-purple-500" />
+            <div className="absolute left-full ml-1 top-1/2 -translate-y-1/2 whitespace-nowrap">
+              <span className="text-xs text-purple-600 font-medium">
+                Higher
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Complexity labels */}
+        {/* Axis labels */}
         <div className="flex justify-between text-xs text-muted-foreground mt-8">
           <span>Lower Complexity</span>
           <span className="text-primary font-medium">Reference Point</span>
           <span>Higher Complexity</span>
         </div>
+
+        <div className="flex flex-col items-center text-xs text-muted-foreground mt-2">
+          <span>Lower Uncertainty</span>
+          <span className="text-primary font-medium">Reference Point</span>
+          <span>Higher Uncertainty</span>
+        </div>
       </div>
 
-      {/* Story Positioning Area */}
+      {/* 2D Story Positioning Area */}
       <div
         ref={combinedRef}
         className={cn(
-          'relative min-h-[400px] w-full px-4',
+          'relative min-h-[500px] w-full px-4',
           'transition-colors duration-200',
           isOver && 'bg-primary/5 rounded-lg',
           'focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2'
@@ -155,42 +183,52 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
         aria-label="Story positioning canvas"
         tabIndex={-1}
       >
-        {/* Grid lines for visual reference (subtle) */}
-        <div className="absolute inset-0 pointer-events-none opacity-30">
+        {/* Grid lines for visual reference */}
+        <div className="absolute inset-0 pointer-events-none opacity-20">
+          {/* Vertical grid lines (complexity) */}
           {Array.from({ length: 9 }, (_, i) => {
             const position = (i + 1) * 10 // 10%, 20%, ..., 90%
             return (
               <div
-                key={i}
-                className="absolute top-0 bottom-0 w-px bg-muted-foreground/10"
+                key={`v-${i}`}
+                className="absolute top-0 bottom-0 w-px bg-muted-foreground/20"
                 style={{ left: `${position}%` }}
               />
             )
           })}
+
+          {/* Horizontal grid lines (uncertainty) */}
+          {Array.from({ length: 9 }, (_, i) => {
+            const position = (i + 1) * 10 // 10%, 20%, ..., 90%
+            return (
+              <div
+                key={`h-${i}`}
+                className="absolute left-0 right-0 h-px bg-muted-foreground/20"
+                style={{ top: `${position}%` }}
+              />
+            )
+          })}
+
+          {/* Center cross */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4">
+            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-primary/40" />
+            <div className="absolute top-1/2 left-0 right-0 h-px bg-primary/40" />
+          </div>
         </div>
 
-        {/* Stories positioned along the horizontal axis */}
-        {stories.map((story, index) => {
-          // Convert position (-100 to 100) to percentage (0% to 100%)
-          const leftPercentage = ((story.position + 100) / 200) * 100
-
-          // Handle story stacking when positions are close
-          const closeStories = stories.filter(
-            s => Math.abs(s.position - story.position) < 10 && s.id !== story.id
-          )
-          const stackIndex = closeStories.filter(
-            s => stories.findIndex(st => st.id === s.id) < index
-          ).length
+        {/* Stories positioned in 2D space */}
+        {stories.map(story => {
+          const percentagePosition = positionToPercentage(story.position)
 
           return (
             <div
               key={story.id}
               className="absolute transition-all duration-300 ease-out"
               style={{
-                left: `${Math.max(5, Math.min(95, leftPercentage))}%`,
-                top: `${20 + stackIndex * 120}px`, // Stack vertically when close
-                transform: 'translateX(-50%)',
-                zIndex: story.isAnchor ? 10 : 1 + stackIndex,
+                left: percentagePosition.left,
+                top: percentagePosition.top,
+                transform: 'translate(-50%, -50%)',
+                zIndex: story.isAnchor ? 10 : 1,
               }}
             >
               <StoryCard
@@ -199,10 +237,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
                 onEdit={() => handleEditStory(story)}
                 onDelete={() => handleDeleteStory(story)}
                 onMakeAnchor={() => handleMakeAnchor(story)}
-                className={cn(
-                  'transition-transform duration-200',
-                  stackIndex > 0 && 'scale-95 opacity-90'
-                )}
+                className="transition-transform duration-200"
               />
             </div>
           )
@@ -211,7 +246,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
         {/* Drop zone indicator when dragging */}
         {isOver && (
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 h-1 bg-primary/30 rounded-full animate-pulse" />
+            <div className="absolute inset-4 border-2 border-dashed border-primary/30 rounded-lg animate-pulse" />
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
                 Drop to position story
@@ -231,7 +266,16 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
               {stories
                 .slice()
-                .sort((a, b) => a.position - b.position)
+                .sort((a, b) => {
+                  // Sort by distance from center (anchor)
+                  const aDistance = Math.sqrt(
+                    a.position.x ** 2 + a.position.y ** 2
+                  )
+                  const bDistance = Math.sqrt(
+                    b.position.x ** 2 + b.position.y ** 2
+                  )
+                  return aDistance - bDistance
+                })
                 .map(story => (
                   <div
                     key={story.id}
@@ -248,10 +292,16 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
                     >
                       {story.title}
                     </span>
-                    <span className="text-muted-foreground font-mono">
-                      {story.position > 0 ? '+' : ''}
-                      {story.position}
-                    </span>
+                    <div className="text-muted-foreground font-mono text-right">
+                      <div>
+                        C: {story.position.x > 0 ? '+' : ''}
+                        {story.position.x}
+                      </div>
+                      <div>
+                        U: {story.position.y > 0 ? '+' : ''}
+                        {story.position.y}
+                      </div>
+                    </div>
                   </div>
                 ))}
             </div>
