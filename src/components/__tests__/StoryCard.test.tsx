@@ -6,6 +6,7 @@
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { DndContext } from '@dnd-kit/core';
 import { StoryCard } from '../StoryCard';
 import { createTestStory } from '@/test/utils';
 
@@ -23,12 +24,12 @@ describe(StoryCard.name, () => {
 
       render(<StoryCard story={story} />);
 
-      // Use semantic queries - article role and heading
-      const storyArticle = screen.getByRole('article', { name: /story: user authentication/i });
+      // Use semantic queries - when drag is enabled by default, role becomes button
+      const storyElement = screen.getByRole('button', { name: /story: user authentication/i });
       const storyHeading = screen.getByRole('heading', { name: /user authentication/i });
       const storyDescription = screen.getByText(/implement login and registration functionality/i);
 
-      expect(storyArticle).toBeInTheDocument();
+      expect(storyElement).toBeInTheDocument();
       expect(storyHeading).toBeInTheDocument();
       expect(storyDescription).toBeInTheDocument();
     });
@@ -41,11 +42,11 @@ describe(StoryCard.name, () => {
 
       render(<StoryCard story={story} />);
 
-      // Use semantic queries
-      const storyArticle = screen.getByRole('article', { name: /story: simple story/i });
+      // Use semantic queries - when drag is enabled by default, role becomes button
+      const storyElement = screen.getByRole('button', { name: /story: simple story/i });
       const storyHeading = screen.getByRole('heading', { name: /simple story/i });
 
-      expect(storyArticle).toBeInTheDocument();
+      expect(storyElement).toBeInTheDocument();
       expect(storyHeading).toBeInTheDocument();
       
       // Verify description is not rendered
@@ -62,12 +63,12 @@ describe(StoryCard.name, () => {
 
       render(<StoryCard story={anchorStory} />);
 
-      // Use accessible queries
-      const storyArticle = screen.getByRole('article', { name: /story: anchor story \(anchor story\)/i });
+      // Use accessible queries - when drag is enabled by default, role becomes button
+      const storyElement = screen.getByRole('button', { name: /story: anchor story \(anchor story\)/i });
       const anchorBadge = screen.getByText('Anchor');
       const storyHeading = screen.getByRole('heading', { name: /anchor story/i });
 
-      expect(storyArticle).toBeInTheDocument();
+      expect(storyElement).toBeInTheDocument();
       expect(anchorBadge).toBeInTheDocument();
       expect(storyHeading).toBeInTheDocument();
     });
@@ -80,11 +81,11 @@ describe(StoryCard.name, () => {
 
       render(<StoryCard story={regularStory} />);
 
-      // Use accessible queries
-      const storyArticle = screen.getByRole('article', { name: /story: regular story$/i });
+      // Use accessible queries - when drag is enabled by default, role becomes button
+      const storyElement = screen.getByRole('button', { name: /story: regular story$/i });
       const storyHeading = screen.getByRole('heading', { name: /regular story/i });
 
-      expect(storyArticle).toBeInTheDocument();
+      expect(storyElement).toBeInTheDocument();
       expect(storyHeading).toBeInTheDocument();
       expect(screen.queryByText('Anchor')).not.toBeInTheDocument();
     });
@@ -123,10 +124,10 @@ describe(StoryCard.name, () => {
 
       render(<StoryCard story={story} onClick={handleClick} />);
 
-      // Use accessible query - the article should be clickable
-      const storyArticle = screen.getByRole('article', { name: /story: clickable story/i });
+      // Use accessible query - when drag is enabled by default, role becomes button
+      const storyElement = screen.getByRole('button', { name: /story: clickable story/i });
 
-      fireEvent.click(storyArticle);
+      fireEvent.click(storyElement);
       expect(handleClick).toHaveBeenCalledTimes(1);
     });
 
@@ -136,10 +137,10 @@ describe(StoryCard.name, () => {
 
       render(<StoryCard story={story} onDoubleClick={handleDoubleClick} />);
 
-      // Use accessible query
-      const storyArticle = screen.getByRole('article', { name: /story: double-clickable story/i });
+      // Use accessible query - when drag is enabled by default, role becomes button
+      const storyElement = screen.getByRole('button', { name: /story: double-clickable story/i });
 
-      fireEvent.doubleClick(storyArticle);
+      fireEvent.doubleClick(storyElement);
       expect(handleDoubleClick).toHaveBeenCalledTimes(1);
     });
 
@@ -149,10 +150,10 @@ describe(StoryCard.name, () => {
 
       render(<StoryCard story={story} onClick={handleClick} />);
 
-      const storyArticle = screen.getByRole('article', { name: /story: keyboard accessible story/i });
+      const storyElement = screen.getByRole('button', { name: /story: keyboard accessible story/i });
 
       // Test keyboard interaction
-      fireEvent.keyDown(storyArticle, { key: 'Enter' });
+      fireEvent.keyDown(storyElement, { key: 'Enter' });
       expect(handleClick).toHaveBeenCalledTimes(1);
     });
 
@@ -162,10 +163,10 @@ describe(StoryCard.name, () => {
 
       render(<StoryCard story={story} onClick={handleClick} />);
 
-      const storyArticle = screen.getByRole('article', { name: /story: space key story/i });
+      const storyElement = screen.getByRole('button', { name: /story: space key story/i });
 
       // Test keyboard interaction
-      fireEvent.keyDown(storyArticle, { key: ' ' });
+      fireEvent.keyDown(storyElement, { key: ' ' });
       expect(handleClick).toHaveBeenCalledTimes(1);
     });
 
@@ -175,20 +176,20 @@ describe(StoryCard.name, () => {
 
       render(<StoryCard story={story} onClick={handleClick} />);
 
-      const storyArticle = screen.getByRole('article', { name: /story: focusable story/i });
+      const storyElement = screen.getByRole('button', { name: /story: focusable story/i });
 
       // Should be focusable
-      expect(storyArticle).toHaveAttribute('tabIndex', '0');
+      expect(storyElement).toHaveAttribute('tabIndex', '0');
     });
 
-    it('is not focusable when not interactive', () => {
+    it('is not focusable when not interactive and drag is disabled', () => {
       const story = createTestStory({ title: 'Non-interactive Story' });
 
-      render(<StoryCard story={story} />);
+      render(<StoryCard story={story} enableDrag={false} />);
 
       const storyArticle = screen.getByRole('article', { name: /story: non-interactive story/i });
 
-      // Should not be focusable
+      // Should not be focusable when no onClick handler and drag is disabled
       expect(storyArticle).not.toHaveAttribute('tabIndex');
     });
   });
@@ -201,8 +202,9 @@ describe(StoryCard.name, () => {
       render(<StoryCard story={story} className={customClass} />);
 
       // Use accessible query and verify custom class is applied
-      const storyArticle = screen.getByRole('article', { name: /story: custom styled story/i });
-      expect(storyArticle).toHaveClass(customClass);
+      // When drag is enabled by default, the role becomes "button"
+      const storyElement = screen.getByRole('button', { name: /story: custom styled story/i });
+      expect(storyElement).toHaveClass(customClass);
     });
 
     it('applies anchor-specific styling for anchor stories', () => {
@@ -212,6 +214,19 @@ describe(StoryCard.name, () => {
       });
 
       render(<StoryCard story={anchorStory} />);
+
+      const storyElement = screen.getByRole('button', { name: /anchor story \(anchor story\)/i });
+      expect(storyElement).toHaveClass('border-primary');
+      expect(storyElement).toHaveClass('bg-primary/5');
+    });
+
+    it('applies anchor-specific styling for anchor stories without drag', () => {
+      const anchorStory = createTestStory({
+        title: 'Anchor Story',
+        isAnchor: true
+      });
+
+      render(<StoryCard story={anchorStory} enableDrag={false} />);
 
       const storyArticle = screen.getByRole('article', { name: /anchor story \(anchor story\)/i });
       expect(storyArticle).toHaveClass('border-primary');
@@ -225,6 +240,19 @@ describe(StoryCard.name, () => {
       });
 
       render(<StoryCard story={regularStory} />);
+
+      const storyElement = screen.getByRole('button', { name: /story: regular story$/i });
+      expect(storyElement).toHaveClass('border-border');
+      expect(storyElement).toHaveClass('bg-card');
+    });
+
+    it('applies regular styling for non-anchor stories without drag', () => {
+      const regularStory = createTestStory({
+        title: 'Regular Story',
+        isAnchor: false
+      });
+
+      render(<StoryCard story={regularStory} enableDrag={false} />);
 
       const storyArticle = screen.getByRole('article', { name: /story: regular story$/i });
       expect(storyArticle).toHaveClass('border-border');
@@ -291,11 +319,11 @@ describe(StoryCard.name, () => {
 
       render(<StoryCard story={story} />);
 
-      const storyArticle = screen.getByRole('article', { 
+      const storyElement = screen.getByRole('button', { 
         name: /story: accessible story \(anchor story\)/i 
       });
 
-      expect(storyArticle).toHaveAttribute('aria-label');
+      expect(storyElement).toHaveAttribute('aria-label');
     });
 
     it('marks decorative elements as hidden from screen readers', () => {
@@ -352,6 +380,129 @@ describe(StoryCard.name, () => {
       expect(card).toHaveClass('min-w-[200px]');
       expect(card).toHaveClass('max-w-[280px]');
       expect(card).toHaveClass('w-full');
+    });
+  });
+
+  describe('drag and drop functionality', () => {
+    const renderWithDndContext = (component: React.ReactElement) => {
+      return render(
+        <DndContext onDragEnd={() => {}}>
+          {component}
+        </DndContext>
+      );
+    };
+
+    it('renders drag handle when drag is enabled', () => {
+      const story = createTestStory({ title: 'Draggable Story' });
+
+      renderWithDndContext(<StoryCard story={story} enableDrag={true} />);
+
+      const dragHandle = screen.getByRole('button', { name: /drag to reposition story/i });
+      expect(dragHandle).toBeInTheDocument();
+    });
+
+    it('does not render drag handle when drag is disabled', () => {
+      const story = createTestStory({ title: 'Non-draggable Story' });
+
+      renderWithDndContext(<StoryCard story={story} enableDrag={false} />);
+
+      const dragHandle = screen.queryByRole('button', { name: /drag to reposition story/i });
+      expect(dragHandle).not.toBeInTheDocument();
+    });
+
+    it('applies dragging styles when isDragging is true', () => {
+      const story = createTestStory({ title: 'Dragging Story' });
+
+      const { container } = renderWithDndContext(
+        <StoryCard story={story} isDragging={true} />
+      );
+      const card = container.firstChild as HTMLElement;
+
+      expect(card).toHaveClass('opacity-50');
+      expect(card).toHaveClass('scale-105');
+      expect(card).toHaveClass('shadow-2xl');
+    });
+
+    it('does not apply dragging styles when isDragging is false', () => {
+      const story = createTestStory({ title: 'Not Dragging Story' });
+
+      const { container } = renderWithDndContext(
+        <StoryCard story={story} isDragging={false} />
+      );
+      const card = container.firstChild as HTMLElement;
+
+      expect(card).not.toHaveClass('opacity-50');
+      expect(card).not.toHaveClass('scale-105');
+      expect(card).not.toHaveClass('shadow-2xl');
+    });
+
+    it('disables hover effects when dragging', () => {
+      const story = createTestStory({ title: 'Dragging Story' });
+
+      const { container } = renderWithDndContext(
+        <StoryCard story={story} isDragging={true} />
+      );
+      const card = container.firstChild as HTMLElement;
+
+      // Hover effects should be disabled when dragging
+      expect(card).not.toHaveClass('hover:shadow-md');
+      expect(card).not.toHaveClass('hover:scale-[1.02]');
+    });
+
+    it('maintains accessibility when drag is enabled', () => {
+      const story = createTestStory({ title: 'Accessible Draggable Story' });
+
+      renderWithDndContext(<StoryCard story={story} enableDrag={true} />);
+
+      // Story should still be accessible (role changes to button when draggable)
+      const storyElement = screen.getByRole('button', { name: /story: accessible draggable story/i });
+      expect(storyElement).toBeInTheDocument();
+
+      // Drag handle should be accessible as a button
+      const dragHandle = screen.getByRole('button', { name: /drag to reposition story/i });
+      expect(dragHandle).toBeInTheDocument();
+      expect(dragHandle).toHaveAttribute('type', 'button');
+    });
+
+    it('provides proper cursor styles for drag handle', () => {
+      const story = createTestStory({ title: 'Cursor Test Story' });
+
+      renderWithDndContext(<StoryCard story={story} enableDrag={true} />);
+
+      const dragHandle = screen.getByRole('button', { name: /drag to reposition story/i });
+      expect(dragHandle).toHaveClass('cursor-grab');
+    });
+
+    it('shows grabbing cursor when actively dragging', () => {
+      const story = createTestStory({ title: 'Grabbing Cursor Story' });
+
+      renderWithDndContext(<StoryCard story={story} enableDrag={true} isDragging={true} />);
+
+      const dragHandle = screen.getByRole('button', { name: /drag to reposition story/i });
+      expect(dragHandle).toHaveClass('cursor-grabbing');
+    });
+
+    it('maintains story content accessibility with drag handle', () => {
+      const story = createTestStory({
+        title: 'Story with Drag Handle',
+        description: 'This story has a drag handle',
+        isAnchor: true
+      });
+
+      renderWithDndContext(<StoryCard story={story} enableDrag={true} />);
+
+      // All story content should still be accessible
+      const storyElement = screen.getByRole('button', { name: /story: story with drag handle \(anchor story\)/i });
+      const storyHeading = screen.getByRole('heading', { name: /story with drag handle/i });
+      const storyDescription = screen.getByText(/this story has a drag handle/i);
+      const anchorBadge = screen.getByText('Anchor');
+      const dragHandle = screen.getByRole('button', { name: /drag to reposition story/i });
+
+      expect(storyElement).toBeInTheDocument();
+      expect(storyHeading).toBeInTheDocument();
+      expect(storyDescription).toBeInTheDocument();
+      expect(anchorBadge).toBeInTheDocument();
+      expect(dragHandle).toBeInTheDocument();
     });
   });
 });
