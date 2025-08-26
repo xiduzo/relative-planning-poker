@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
-import { StoryCard } from '@/components/StoryCard';
+import { PlanningCanvas } from '@/components/PlanningCanvas';
+import { DndProvider } from '@/components/DndProvider';
 import { Button } from '@/components/ui/button';
 import { usePlanningStore } from '@/stores/planning-store';
 import { Plus } from 'lucide-react';
+import type { Story } from '@/types';
 
 export default function Home() {
   const { currentSession, createSession, addStory } = usePlanningStore();
@@ -22,6 +24,16 @@ export default function Home() {
       title: `Story ${storyCount + 1}`,
       description: `This is a sample story for testing drag and drop functionality. Story number ${storyCount + 1}.`,
     });
+  };
+
+  const handleStoryClick = (story: Story) => {
+    console.log('Story clicked:', story.title);
+    // TODO: Implement story editing functionality
+  };
+
+  const handleStoryDoubleClick = (story: Story) => {
+    console.log('Story double-clicked:', story.title);
+    // TODO: Implement quick edit functionality
   };
 
   if (!currentSession) {
@@ -63,65 +75,19 @@ export default function Home() {
           </p>
         </div>
 
-        {currentSession.stories.length === 0 ? (
+        <DndProvider>
+          <PlanningCanvas
+            onStoryClick={handleStoryClick}
+            onStoryDoubleClick={handleStoryDoubleClick}
+          />
+        </DndProvider>
+
+        {currentSession.stories.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">No stories yet</p>
             <Button onClick={handleAddStory} variant="outline" className="gap-2">
               <Plus className="w-4 h-4" />
               Add Your First Story
             </Button>
-          </div>
-        ) : (
-          <div className="relative">
-            {/* Horizontal axis visualization */}
-            <div className="mb-8 relative">
-              <div className="h-px bg-border w-full relative">
-                <div className="absolute left-0 top-0 h-2 w-px bg-green-500 -translate-y-1/2" />
-                <div className="absolute left-1/2 top-0 h-4 w-px bg-primary -translate-x-1/2 -translate-y-1/2" />
-                <div className="absolute right-0 top-0 h-2 w-px bg-orange-500 -translate-y-1/2" />
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                <span>Lower Complexity</span>
-                <span>Anchor</span>
-                <span>Higher Complexity</span>
-              </div>
-            </div>
-
-            {/* Stories positioned along the axis */}
-            <div className="relative min-h-[200px] w-full">
-              {currentSession.stories.map((story) => {
-                // Convert position (-100 to 100) to percentage (0% to 100%)
-                const leftPercentage = ((story.position + 100) / 200) * 100;
-                
-                return (
-                  <div
-                    key={story.id}
-                    className="absolute top-0"
-                    style={{
-                      left: `${Math.max(0, Math.min(100, leftPercentage))}%`,
-                      transform: 'translateX(-50%)',
-                    }}
-                  >
-                    <StoryCard story={story} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Debug information */}
-        {currentSession.stories.length > 0 && (
-          <div className="mt-8 p-4 bg-muted/50 rounded-lg">
-            <h3 className="text-sm font-medium mb-2">Debug Information</h3>
-            <div className="text-xs text-muted-foreground space-y-1">
-              {currentSession.stories.map((story) => (
-                <div key={story.id} className="flex justify-between">
-                  <span>{story.title}</span>
-                  <span>Position: {story.position}</span>
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </main>
