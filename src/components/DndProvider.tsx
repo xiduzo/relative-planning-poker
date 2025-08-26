@@ -17,7 +17,6 @@ import {
   DragOverEvent,
   DragMoveEvent,
 } from '@dnd-kit/core'
-import { restrictToParentElement } from '@dnd-kit/modifiers'
 import { StoryCard } from './StoryCard'
 import { usePlanningStore } from '@/stores/planning-store'
 import type { Story } from '@/types'
@@ -86,8 +85,8 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
         return
       }
 
-      // Calculate position change (same increment as drag snapping)
-      const positionChange = 5
+      // Calculate position change for keyboard navigation
+      const positionChange = 2 // Fixed increment for keyboard movement
       let newX = story.position.x
       let newY = story.position.y
 
@@ -143,11 +142,44 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   }
 
   const handleDragMove = (event: DragMoveEvent) => {
-    // Update the drag transform for the overlay
-    if (event.delta) {
+    const { active, delta } = event
+    const story = active.data.current?.story as Story
+
+    if (story) {
+      // Don't allow moving anchor stories
+      if (story.isAnchor) {
+        return
+      }
+
+      // Get canvas dimensions for position calculation
+      const canvas = canvasRef.current
+      if (!canvas) {
+        return
+      }
+
+      const canvasRect = canvas.getBoundingClientRect()
+
+      // Calculate cursor position relative to canvas
+      const activatorEvent = event.activatorEvent as PointerEvent
+      const cursorX = activatorEvent.clientX - canvasRect.left
+      const cursorY = activatorEvent.clientY - canvasRect.top
+
+      // Convert cursor position to story position coordinates (-100 to 100)
+      const newPositionX = (cursorX / canvasRect.width) * 200 - 100
+      const newPositionY = (cursorY / canvasRect.height) * 200 - 100
+
+      const newPosition = {
+        x: Math.max(-100, Math.min(100, newPositionX)),
+        y: Math.max(-100, Math.min(100, newPositionY)),
+      }
+
+      // Update position in real-time during drag
+      updateStoryPosition(story.id, newPosition)
+
+      // Update the drag transform for the overlay (only for visual feedback)
       setDragTransform({
-        x: event.delta.x,
-        y: event.delta.y,
+        x: delta.x,
+        y: delta.y,
       })
     }
   }
@@ -157,10 +189,10 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, delta } = event
+    const { active } = event
     const story = active.data.current?.story as Story
 
-    if (story && (delta.x !== 0 || delta.y !== 0)) {
+    if (story) {
       // Don't allow moving anchor stories
       if (story.isAnchor) {
         setActiveStory(null)
@@ -168,33 +200,28 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
         return
       }
 
-      // Get canvas dimensions for position calculation
+      // Get canvas dimensions for final position calculation
       const canvas = canvasRef.current
-      if (!canvas) {
-        setActiveStory(null)
-        setDragTransform(null)
-        return
+      if (canvas) {
+        const canvasRect = canvas.getBoundingClientRect()
+
+        // Calculate final cursor position relative to canvas
+        const activatorEvent = event.activatorEvent as PointerEvent
+        const cursorX = activatorEvent.clientX - canvasRect.left
+        const cursorY = activatorEvent.clientY - canvasRect.top
+
+        // Convert cursor position to story position coordinates (-100 to 100)
+        const newPositionX = (cursorX / canvasRect.width) * 200 - 100
+        const newPositionY = (cursorY / canvasRect.height) * 200 - 100
+
+        const finalPosition = {
+          x: Math.max(-100, Math.min(100, newPositionX)),
+          y: Math.max(-100, Math.min(100, newPositionY)),
+        }
+
+        // Update to final position
+        updateStoryPosition(story.id, finalPosition)
       }
-
-      const canvasRect = canvas.getBoundingClientRect()
-
-      // Calculate new position based on drag delta
-      // Convert pixel movement to position scale (-100 to 100)
-      const positionDeltaX = (delta.x / canvasRect.width) * 200
-      const positionDeltaY = (delta.y / canvasRect.height) * 200
-
-      const newPosition = {
-        x: Math.max(-100, Math.min(100, story.position.x + positionDeltaX)),
-        y: Math.max(-100, Math.min(100, story.position.y + positionDeltaY)),
-      }
-
-      // Snap to nearest 5-unit increment for cleaner positioning
-      const snappedPosition = {
-        x: Math.round(newPosition.x / 5) * 5,
-        y: Math.round(newPosition.y / 5) * 5,
-      }
-
-      updateStoryPosition(story.id, snappedPosition)
     }
 
     setActiveStory(null)
@@ -216,7 +243,6 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
-        modifiers={[restrictToParentElement]}
       >
         {children}
 

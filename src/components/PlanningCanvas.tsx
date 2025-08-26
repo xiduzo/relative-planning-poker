@@ -12,6 +12,8 @@ import { useDialogStore } from '@/stores/dialog-store'
 import { cn } from '@/lib/utils'
 import { positionToPercentage } from '@/utils/position'
 import { useCanvasRef } from './DndProvider'
+import { Button } from './ui/button'
+import { Plus } from 'lucide-react'
 import type { Story } from '@/types'
 
 export interface PlanningCanvasProps {
@@ -80,27 +82,10 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   }
 
   const { stories } = currentSession
+  const { openAddStoryDialog } = useDialogStore()
 
-  if (stories.length === 0) {
-    return (
-      <div
-        ref={combinedRef}
-        className={cn(
-          'relative min-h-[300px] flex items-center justify-center',
-          'border-2 border-dashed border-muted-foreground/20 rounded-lg',
-          'transition-colors duration-200',
-          isOver && 'border-primary/50 bg-primary/5',
-          className
-        )}
-      >
-        <div className="text-center">
-          <p className="text-muted-foreground mb-2">No stories to display</p>
-          <p className="text-sm text-muted-foreground/70">
-            Add your first story to start planning
-          </p>
-        </div>
-      </div>
-    )
+  const handleAddAnchorStory = () => {
+    openAddStoryDialog()
   }
 
   return (
@@ -223,12 +208,14 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
           return (
             <div
               key={story.id}
-              className="absolute transition-all duration-300 ease-out"
+              className="absolute"
               style={{
                 left: percentagePosition.left,
                 top: percentagePosition.top,
                 transform: 'translate(-50%, -50%)',
                 zIndex: story.isAnchor ? 10 : 1,
+                // Disable transitions for immediate positioning during drag
+                transition: 'none',
               }}
             >
               <StoryCard
@@ -242,6 +229,30 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
             </div>
           )
         })}
+
+        {/* Empty state with centered button when no stories */}
+        {stories.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div className="space-y-2">
+                <p className="text-muted-foreground font-medium">
+                  No stories to display
+                </p>
+                <p className="text-sm text-muted-foreground/70">
+                  Add your first anchor story to start planning
+                </p>
+              </div>
+              <Button
+                onClick={handleAddAnchorStory}
+                size="lg"
+                className="shadow-lg hover:shadow-xl transition-shadow"
+              >
+                <Plus className="h-5 w-5" />
+                Add Anchor Story
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Drop zone indicator when dragging */}
         {isOver && (

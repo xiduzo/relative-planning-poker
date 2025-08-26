@@ -70,19 +70,6 @@ export default function Home() {
         </div>
 
         <PlanningCanvas onStoryDoubleClick={handleStoryDoubleClick} />
-
-        {currentSession.stories.length === 0 && (
-          <div className="text-center py-12">
-            <Button
-              onClick={openAddStoryDialog}
-              variant="outline"
-              className="gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Your Anchor Story
-            </Button>
-          </div>
-        )}
       </main>
 
       <StoryDialog />

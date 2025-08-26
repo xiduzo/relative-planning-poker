@@ -206,8 +206,8 @@ export function positionToPercentage(position: Position2D): {
   const topPercentage = ((position.y + 100) / 200) * 100
 
   return {
-    left: `${Math.max(5, Math.min(95, leftPercentage))}%`,
-    top: `${Math.max(5, Math.min(95, topPercentage))}%`,
+    left: `${Math.max(0, Math.min(100, leftPercentage))}%`,
+    top: `${Math.max(0, Math.min(100, topPercentage))}%`,
   }
 }
 

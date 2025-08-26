@@ -126,18 +126,18 @@ describe('PlanningCanvas Integration Tests', () => {
         createTestStory({
           id: 'story-1',
           title: 'Left Story',
-          position: -50,
+          position: { x: -50, y: 0 },
         }),
         createTestStory({
           id: 'story-2',
           title: 'Center Story',
-          position: 0,
+          position: { x: 0, y: 0 },
           isAnchor: true,
         }),
         createTestStory({
           id: 'story-3',
           title: 'Right Story',
-          position: 50,
+          position: { x: 50, y: 0 },
         }),
       ]
       const session = createTestSession({ stories, anchorStoryId: 'story-2' })
@@ -165,18 +165,18 @@ describe('PlanningCanvas Integration Tests', () => {
         createTestStory({
           id: 'story-1',
           title: 'Story A',
-          position: 0,
+          position: { x: 0, y: 0 },
           isAnchor: true,
         }),
         createTestStory({
           id: 'story-2',
           title: 'Story B',
-          position: 5, // Close to anchor
+          position: { x: 5, y: 0 }, // Close to anchor
         }),
         createTestStory({
           id: 'story-3',
           title: 'Story C',
-          position: 8, // Also close
+          position: { x: 8, y: 0 }, // Also close
         }),
       ]
       const session = createTestSession({ stories, anchorStoryId: 'story-1' })
@@ -203,7 +203,7 @@ describe('PlanningCanvas Integration Tests', () => {
   describe('Canvas Responsiveness', () => {
     it('adapts to different screen sizes', () => {
       const stories = [
-        createTestStory({ title: 'Responsive Story', position: 25 }),
+        createTestStory({ title: 'Responsive Story', position: { x: 25, y: 0 } }),
       ]
       const session = createTestSession({ stories })
       const mockStore = createMockStore(session)
@@ -229,12 +229,12 @@ describe('PlanningCanvas Integration Tests', () => {
         createTestStory({
           id: 'story-1',
           title: 'Edge Left',
-          position: -100, // Far left edge
+          position: { x: -100, y: 0 }, // Far left edge
         }),
         createTestStory({
           id: 'story-2',
           title: 'Edge Right',
-          position: 100, // Far right edge
+          position: { x: 100, y: 0 }, // Far right edge
         }),
       ]
       const session = createTestSession({ stories })
@@ -257,7 +257,7 @@ describe('PlanningCanvas Integration Tests', () => {
       const handleStoryDoubleClick = vi.fn()
 
       const stories = [
-        createTestStory({ title: 'Interactive Story', position: 0 }),
+        createTestStory({ title: 'Interactive Story', position: { x: 0, y: 0 } }),
       ]
       const session = createTestSession({ stories })
       const mockStore = createMockStore(session)
@@ -428,8 +428,9 @@ describe('PlanningCanvas Integration Tests', () => {
 
       expect(screen.getByText('No stories to display')).toBeInTheDocument()
       expect(
-        screen.getByText('Add your first story to start planning')
+        screen.getByText('Add your first anchor story to start planning')
       ).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /add anchor story/i })).toBeInTheDocument()
     })
 
     it('handles invalid story positions gracefully', () => {
