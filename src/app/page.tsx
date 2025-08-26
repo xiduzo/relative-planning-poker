@@ -20,12 +20,6 @@ export default function Home() {
     }
   }, [currentSession, createSession])
 
-  const handleStoryClick = (story: Story) => {
-    console.log('Story clicked:', story.title)
-    // Open edit dialog when story is clicked
-    openEditStoryDialog(story)
-  }
-
   const handleStoryDoubleClick = (story: Story) => {
     console.log('Story double-clicked:', story.title)
     // Open edit dialog when story is double-clicked
@@ -69,15 +63,12 @@ export default function Home() {
           <h2 className="text-lg font-semibold mb-2">Stories</h2>
           <p className="text-sm text-muted-foreground mb-4">
             Drag stories left or right to indicate relative complexity. Left =
-            Lower complexity, Right = Higher complexity. Click or double-click a
-            story to edit it.
+            Lower complexity, Right = Higher complexity. Double-click a story to
+            edit it, or right-click for more options.
           </p>
         </div>
 
-        <PlanningCanvas
-          onStoryClick={handleStoryClick}
-          onStoryDoubleClick={handleStoryDoubleClick}
-        />
+        <PlanningCanvas onStoryDoubleClick={handleStoryDoubleClick} />
 
         {currentSession.stories.length === 0 && (
           <div className="text-center py-12">

@@ -224,23 +224,6 @@ describe(PlanningCanvas.name, () => {
   });
 
   describe('Interaction Handlers', () => {
-    it('calls onStoryClick when story is clicked', () => {
-      const handleStoryClick = vi.fn();
-      const story = createTestStory({ title: 'Clickable Story' });
-      const session = createTestSession({ stories: [story] });
-      mockUsePlanningStore.mockImplementation(() => session);
-
-      renderWithDndProvider(
-        <PlanningCanvas onStoryClick={handleStoryClick} />
-      );
-
-      // Click on the story card (first occurrence)
-      const storyCards = screen.getAllByText('Clickable Story');
-      fireEvent.click(storyCards[0]); // Click the card, not the summary
-
-      expect(handleStoryClick).toHaveBeenCalledWith(story);
-    });
-
     it('calls onStoryDoubleClick when story is double-clicked', () => {
       const handleStoryDoubleClick = vi.fn();
       const story = createTestStory({ title: 'Double-clickable Story' });
