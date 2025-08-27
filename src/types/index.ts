@@ -1,5 +1,5 @@
 /**
- * Core data models and Zod schemas for Relative Planning Poker
+ * Core data models and Zod schemas for StoryScape
  */
 
 import { z } from 'zod'

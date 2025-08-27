@@ -13,3 +13,5 @@ export { DndProvider } from './DndProvider'
 export { StoryDialog } from './StoryDialog'
 
 export { ThemeToggle } from './ThemeToggle'
+
+export { Logo } from './Logo'

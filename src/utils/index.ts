@@ -3,10 +3,13 @@
  */
 
 // Position utilities
-export * from './position';
+export * from './position'
 
 // Validation utilities
-export * from './validation';
+export * from './validation'
 
 // ID generation utilities
-export * from './id';
+export * from './id'
+
+// Color utilities
+export * from './color'

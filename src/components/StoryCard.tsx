@@ -21,8 +21,16 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import { Anchor, Edit, Trash2 } from 'lucide-react'
+import {
+  Anchor,
+  AnchorIcon,
+  BriefcaseBusinessIcon,
+  CrosshairIcon,
+  Edit,
+  Trash2,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getPositionColorClass } from '@/utils/color'
 import type { Story } from '@/types'
 
 export interface StoryCardProps {
@@ -95,16 +103,14 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       data-story-id={story.id}
       className={cn(
         // Base styles
-        'cursor-pointer select-none transition-all duration-200 ease-in-out relative',
+        'select-none transition-all duration-200 ease-in-out relative',
         'min-w-[200px] max-w-[280px] w-full',
 
-        // Focus styles for keyboard navigation
-        'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-
         // Hover states (disabled when dragging)
-        !isCurrentlyDragging && [
-          'hover:shadow-md hover:scale-[1.02] hover:border-primary/20',
-        ],
+        !isCurrentlyDragging &&
+          !story.isAnchor && [
+            'hover:shadow-md hover:scale-[1.02] hover:border-primary/20',
+          ],
 
         // Dragging states
         isCurrentlyDragging && [
@@ -114,15 +120,18 @@ export const StoryCard: React.FC<StoryCardProps> = ({
 
         // Anchor story styling
         story.isAnchor && [
-          'border-primary bg-primary/5',
+          'border-primary bg-primary-muted',
           'shadow-md ring-1 ring-primary/20',
-          !isCurrentlyDragging && 'hover:bg-primary/10 hover:ring-primary/30',
+          'opacity-80 -z-10',
         ],
 
         // Non-anchor story styling
         !story.isAnchor && [
+          'cursor-pointer',
           'border-border bg-card',
           !isCurrentlyDragging && 'hover:bg-accent/50',
+          // Focus styles for keyboard navigation
+          'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
         ],
 
         className
@@ -138,31 +147,37 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       {...(enableDrag ? { ...attributes, ...listeners } : {})}
     >
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle
-            className={cn(
-              'text-sm font-medium leading-tight line-clamp-2 flex-1',
-              story.isAnchor && 'text-primary'
-            )}
-          >
-            <h3 className="text-inherit font-inherit leading-inherit">
-              {story.title}
-            </h3>
-          </CardTitle>
-
-          <div className="flex items-center gap-1 shrink-0">
-            {story.isAnchor && (
-              <Badge
-                variant="secondary"
-                className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-                aria-label="Anchor story indicator"
-              >
-                <Anchor className="w-3 h-3 mr-1" aria-hidden="true" />
-                Anchor
-              </Badge>
-            )}
-          </div>
-        </div>
+        <CardTitle
+          className={cn(
+            'text-sm font-medium leading-tight line-clamp-2 flex-1',
+            story.isAnchor && 'text-primary'
+          )}
+        >
+          <h3 className="text-inherit font-inherit leading-inherit">
+            {story.title}
+          </h3>
+        </CardTitle>
+        <CardDescription className="text-xs leading-relaxed line-clamp-3">
+          {!story.isAnchor && (
+            <Badge
+              variant="secondary"
+              aria-label="Story point indication"
+              className={getPositionColorClass(story.position)}
+            >
+              <BriefcaseBusinessIcon
+                className="w-3 h-3 mr-1"
+                aria-hidden="true"
+              />
+              Work estimate
+            </Badge>
+          )}
+          {story.isAnchor && (
+            <Badge variant="secondary" aria-label="Anchor story indicator">
+              <AnchorIcon className="w-3 h-3 mr-1" aria-hidden="true" />
+              Anchor
+            </Badge>
+          )}
+        </CardDescription>
       </CardHeader>
 
       {story.description && (
@@ -173,21 +188,16 @@ export const StoryCard: React.FC<StoryCardProps> = ({
         </CardContent>
       )}
 
-      {/* Visual indicator for relative position */}
-      <div
-        className={cn(
-          'absolute bottom-0 left-0 right-0 h-1 rounded-b-xl transition-colors',
-          story.isAnchor && 'bg-primary/30',
-          !story.isAnchor && story.position.x < 0 && 'bg-green-400/60', // Lower complexity
-          !story.isAnchor && story.position.x > 0 && 'bg-orange-400/60', // Higher complexity
-          !story.isAnchor &&
-            story.position.x === 0 &&
-            story.position.y === 0 &&
-            'bg-blue-400/60' // Same as anchor
-        )}
-        aria-hidden="true"
-        role="presentation"
-      />
+      {/* Debug position info */}
+      <CardContent className="pt-0">
+        <div className="text-xs text-muted-foreground font-mono">
+          <div className="flex flex-col justify-between">
+            <span>X: {story.position.x}</span>
+            <span>Y: {story.position.y}</span>
+            <span>Sum: {story.position.x + -story.position.y}</span>
+          </div>
+        </div>
+      </CardContent>
     </Card>
   )
 

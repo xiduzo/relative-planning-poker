@@ -12,7 +12,7 @@ import { DndProvider } from '@/components/DndProvider'
 
 export default function Home() {
   const { currentSession, createSession } = usePlanningStore()
-  const { openAddStoryDialog, openEditStoryDialog } = useDialogStore()
+  const { openEditStoryDialog } = useDialogStore()
 
   useEffect(() => {
     // Create a demo session if none exists
