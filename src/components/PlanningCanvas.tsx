@@ -11,9 +11,8 @@ import { usePlanningStore } from '@/stores/planning-store'
 import { useDialogStore } from '@/stores/dialog-store'
 import { cn } from '@/lib/utils'
 import { positionToPercentage } from '@/utils/position'
-import { useCanvasRef } from './DndProvider'
 import { Button } from './ui/button'
-import { AnchorIcon, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import type { Story } from '@/types'
 import { Badge } from './ui/badge'
 
@@ -27,7 +26,6 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   onStoryDoubleClick,
 }) => {
   const currentSession = usePlanningStore(state => state.currentSession)
-  const canvasRef = useCanvasRef()
 
   // Set up droppable area for the entire canvas
   const { setNodeRef, isOver } = useDroppable({
@@ -36,17 +34,6 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
       type: 'canvas',
     },
   })
-
-  // Combine refs for both droppable and canvas measurements
-  const combinedRef = React.useCallback(
-    (node: HTMLDivElement | null) => {
-      setNodeRef(node)
-      if (node && canvasRef.current !== node) {
-        canvasRef.current = node
-      }
-    },
-    [setNodeRef, canvasRef]
-  )
 
   // Get store actions
   const { setAnchorStory, deleteStory } = usePlanningStore()
@@ -99,7 +86,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
           <div className="h-3 w-px bg-muted-foreground" />
           <div className="absolute bottom-full left-1/2 whitespace-nowrap">
             <span className="text-xs text-muted-foreground font-medium">
-              Low complexity
+              Lower complexity
             </span>
           </div>
         </div>
@@ -108,7 +95,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
           <div className="h-3 w-px bg-muted-foreground" />
           <div className="absolute bottom-full right-1/2 whitespace-nowrap">
             <span className="text-xs text-muted-foreground font-medium">
-              High complexity
+              Higher complexity
             </span>
           </div>
         </div>
@@ -116,12 +103,13 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
 
       {/* Main canvas area, offset by 1 column */}
       <section
-        ref={combinedRef}
+        ref={setNodeRef}
         className={cn(
           'relative px-4 col-span-1 col-start-1 row-span-1 h-full',
           'transition-colors duration-200',
           isOver && 'bg-primary/5 rounded-lg'
         )}
+        id="dnd-canvas"
         role="application"
         aria-label="Story positioning canvas"
         tabIndex={-1}
@@ -214,7 +202,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
 
         {/* Drop zone indicator when dragging */}
         {isOver && (
-          <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 pointer-events-none z-50">
             <div className="absolute inset-4 border-2 border-dashed border-primary/30 rounded-lg animate-pulse" />
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <Badge>Drop to position story</Badge>
@@ -233,7 +221,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
           <div className="w-3 h-px bg-muted-foreground" />
           <div className="absolute top-fullleft-0 whitespace-nowrap transform rotate-90 origin-left translate-x-6 -translate-y-3">
             <span className="text-xs text-muted-foreground font-medium">
-              A lot of uncertainty
+              More uncertainty
             </span>
           </div>
         </div>
@@ -242,7 +230,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
           <div className="w-3 h-px bg-muted-foreground" />
           <div className="absolute bottom-full right-0 whitespace-nowrap transform rotate-90 origin-right translate-x-3 translate-y-3">
             <span className="text-xs text-muted-foreground font-medium">
-              No uncertainty
+              Less uncertainty
             </span>
           </div>
         </div>

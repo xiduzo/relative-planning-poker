@@ -10,6 +10,3 @@ export * from './validation'
 
 // ID generation utilities
 export * from './id'
-
-// Color utilities
-export * from './color'

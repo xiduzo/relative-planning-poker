@@ -4,7 +4,7 @@
 
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import {
   Card,
@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  CardAction,
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -21,17 +22,15 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import {
-  Anchor,
-  AnchorIcon,
-  BriefcaseBusinessIcon,
-  CrosshairIcon,
-  Edit,
-  Trash2,
-} from 'lucide-react'
+import { Anchor, AnchorIcon, Edit, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getPositionColorClass } from '@/utils/color'
+import { calculatePositionScore } from '@/utils/position'
 import type { Story } from '@/types'
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
+
+const scoreFormatter = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 0,
+})
 
 export interface StoryCardProps {
   story: Story
@@ -87,11 +86,14 @@ export const StoryCard: React.FC<StoryCardProps> = ({
 
   const style = transform
     ? {
-        // Invert the x transform to match our corrected drag direction
-        // This ensures the visual drag follows the mouse correctly
-        transform: `translate3d(${-transform.x}px, ${transform.y}px, 0)`,
+        // Apply the transform directly to follow the mouse movement
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
       }
     : undefined
+
+  const cardScore = useMemo(() => {
+    return calculatePositionScore(story.position)
+  }, [story.position])
 
   const cardContent = (
     <Card
@@ -103,8 +105,10 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       data-story-id={story.id}
       className={cn(
         // Base styles
-        'select-none transition-all duration-200 ease-in-out relative',
-        'min-w-[200px] max-w-[280px] w-full',
+        'select-none transition-all duration-200 ease-in-out',
+        'min-w-[200px] w-full',
+        'border-border bg-card/95',
+        'hover:z-50',
 
         // Hover states (disabled when dragging)
         !isCurrentlyDragging &&
@@ -114,22 +118,17 @@ export const StoryCard: React.FC<StoryCardProps> = ({
 
         // Dragging states
         isCurrentlyDragging && [
-          'opacity-50 scale-105 shadow-2xl z-50',
+          'opacity-5 scale-105 shadow-2xl z-50',
           'transform-gpu will-change-transform',
         ],
 
         // Anchor story styling
-        story.isAnchor && [
-          'border-primary bg-primary-muted',
-          'shadow-md ring-1 ring-primary/20',
-          'opacity-80 -z-10',
-        ],
+        story.isAnchor && ['bg-muted pointer-events-none'],
 
         // Non-anchor story styling
         !story.isAnchor && [
           'cursor-pointer',
-          'border-border bg-card',
-          !isCurrentlyDragging && 'hover:bg-accent/50',
+          !isCurrentlyDragging && 'hover:bg-card',
           // Focus styles for keyboard navigation
           'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
         ],
@@ -147,57 +146,51 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       {...(enableDrag ? { ...attributes, ...listeners } : {})}
     >
       <CardHeader className="pb-3">
-        <CardTitle
-          className={cn(
-            'text-sm font-medium leading-tight line-clamp-2 flex-1',
-            story.isAnchor && 'text-primary'
-          )}
-        >
-          <h3 className="text-inherit font-inherit leading-inherit">
-            {story.title}
-          </h3>
-        </CardTitle>
-        <CardDescription className="text-xs leading-relaxed line-clamp-3">
+        <CardTitle>{story.title}</CardTitle>
+        <CardAction>
           {!story.isAnchor && (
-            <Badge
-              variant="secondary"
-              aria-label="Story point indication"
-              className={getPositionColorClass(story.position)}
-            >
-              <BriefcaseBusinessIcon
-                className="w-3 h-3 mr-1"
-                aria-hidden="true"
-              />
-              Work estimate
-            </Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  className={cn(
+                    'h-3 w-3 rounded-full',
+                    'bg-red-500',
+                    cardScore > 1 && ['bg-orange-500'],
+                    cardScore > 2 && ['bg-amber-500'],
+                    cardScore > 3 && ['bg-yellow-500'],
+                    cardScore > 4 && ['bg-lime-500'],
+                    cardScore > 5 && ['bg-green-500'],
+                    cardScore > 7 && ['bg-emerald-500'],
+                    cardScore > 8 && ['bg-teal-500']
+                  )}
+                  aria-label="Story point indication"
+                >
+                  {scoreFormatter.format(cardScore)}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Amount of work indication</p>
+              </TooltipContent>
+            </Tooltip>
           )}
-          {story.isAnchor && (
-            <Badge variant="secondary" aria-label="Anchor story indicator">
+        </CardAction>
+        {story.isAnchor && (
+          <CardDescription>
+            <Badge variant="outline" aria-label="Anchor story indicator">
               <AnchorIcon className="w-3 h-3 mr-1" aria-hidden="true" />
-              Anchor
+              Anchor story
             </Badge>
-          )}
-        </CardDescription>
+          </CardDescription>
+        )}
       </CardHeader>
 
       {story.description && (
-        <CardContent className="pt-0">
+        <CardContent className="max-w-xs">
           <CardDescription className="text-xs leading-relaxed line-clamp-3">
             {story.description}
           </CardDescription>
         </CardContent>
       )}
-
-      {/* Debug position info */}
-      <CardContent className="pt-0">
-        <div className="text-xs text-muted-foreground font-mono">
-          <div className="flex flex-col justify-between">
-            <span>X: {story.position.x}</span>
-            <span>Y: {story.position.y}</span>
-            <span>Sum: {story.position.x + -story.position.y}</span>
-          </div>
-        </div>
-      </CardContent>
     </Card>
   )
 
