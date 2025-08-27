@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
-import { DndProvider } from '@/components/DndProvider'
+import { ThemeToggle } from '@/components'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -28,9 +28,25 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <DndProvider>
-          {children}
-        </DndProvider>
+        <div className="h-screen bg-background flex flex-col">
+          <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold">
+                    Relative Planning Poker
+                  </h1>
+                  <p className="text-sm text-muted-foreground">Session: XXXX</p>
+                </div>
+                <ThemeToggle />
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 flex flex-col container mx-auto px-4 py-8">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   )

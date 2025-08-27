@@ -85,10 +85,6 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   const { stories } = currentSession
   const { openAddStoryDialog } = useDialogStore()
 
-  const handleAddAnchorStory = () => {
-    openAddStoryDialog()
-  }
-
   return (
     <div
       className={cn(
@@ -100,18 +96,18 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
       <section className="col-span-1 row-span-1 relative h-8 flex items-center px-4">
         <div className="absolute inset-x-0 top-1/2 h-px bg-border -translate-y-1/2" />
         <div className="absolute left-0 top-1/2 -translate-y-1/2">
-          <div className="h-3 w-px bg-green-500" />
+          <div className="h-3 w-px bg-muted-foreground" />
           <div className="absolute bottom-full left-1/2 whitespace-nowrap">
-            <span className="text-xs text-green-600 font-medium">
+            <span className="text-xs text-muted-foreground font-medium">
               Low complexity
             </span>
           </div>
         </div>
 
         <div className="absolute right-0 top-1/2 -translate-y-1/2">
-          <div className="h-3 w-px bg-orange-500" />
+          <div className="h-3 w-px bg-muted-foreground" />
           <div className="absolute bottom-full right-1/2 whitespace-nowrap">
-            <span className="text-xs text-orange-600 font-medium">
+            <span className="text-xs text-muted-foreground font-medium">
               High complexity
             </span>
           </div>
@@ -124,8 +120,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
         className={cn(
           'relative px-4 col-span-1 col-start-1 row-span-1 h-full',
           'transition-colors duration-200',
-          isOver && 'bg-primary/5 rounded-lg',
-          'focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2'
+          isOver && 'bg-primary/5 rounded-lg'
         )}
         role="application"
         aria-label="Story positioning canvas"
@@ -206,7 +201,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
                 </p>
               </div>
               <Button
-                onClick={handleAddAnchorStory}
+                onClick={openAddStoryDialog}
                 size="lg"
                 className="shadow-lg hover:shadow-xl transition-shadow"
               >
@@ -235,18 +230,18 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
 
         {/* Uncertainty indicators */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2">
-          <div className="w-3 h-px bg-blue-500" />
+          <div className="w-3 h-px bg-muted-foreground" />
           <div className="absolute top-fullleft-0 whitespace-nowrap transform rotate-90 origin-left translate-x-6 -translate-y-3">
-            <span className="text-xs text-blue-600 font-medium">
+            <span className="text-xs text-muted-foreground font-medium">
               A lot of uncertainty
             </span>
           </div>
         </div>
 
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2">
-          <div className="w-3 h-px bg-amber-500" />
+          <div className="w-3 h-px bg-muted-foreground" />
           <div className="absolute bottom-full right-0 whitespace-nowrap transform rotate-90 origin-right translate-x-3 translate-y-3">
-            <span className="text-xs text-amber-600 font-medium">
+            <span className="text-xs text-muted-foreground font-medium">
               No uncertainty
             </span>
           </div>
@@ -254,58 +249,12 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
       </section>
 
       {/* Actions */}
-      {/* Position Summary */}
-      {stories.length > 0 && (
-        <div className="px-4">
-          <div className="bg-muted/50 rounded-lg p-4">
-            <h3 className="text-sm font-medium mb-3 text-muted-foreground">
-              Story Positions
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
-              {stories
-                .slice()
-                .sort((a, b) => {
-                  // Sort by distance from center (anchor)
-                  const aDistance = Math.sqrt(
-                    a.position.x ** 2 + a.position.y ** 2
-                  )
-                  const bDistance = Math.sqrt(
-                    b.position.x ** 2 + b.position.y ** 2
-                  )
-                  return aDistance - bDistance
-                })
-                .map(story => (
-                  <div
-                    key={story.id}
-                    className={cn(
-                      'flex justify-between items-center p-2 rounded border',
-                      story.isAnchor && 'bg-primary/10 border-primary/20'
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'truncate flex-1 mr-2',
-                        story.isAnchor && 'font-medium text-primary'
-                      )}
-                    >
-                      {story.title}
-                    </span>
-                    <div className="text-muted-foreground font-mono text-right">
-                      <div>
-                        C: {story.position.x > 0 ? '+' : ''}
-                        {story.position.x}
-                      </div>
-                      <div>
-                        U: {story.position.y > 0 ? '+' : ''}
-                        {story.position.y}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <section className="col-span-1 row-span-1 relative flex items-center h-full min-h-0">
+        <Button variant="outline" onClick={openAddStoryDialog}>
+          <Plus className="h-5 w-5" />
+          Add new Story
+        </Button>
+      </section>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { PlanningCanvas } from '@/components/PlanningCanvas'
 import { StoryDialog } from '@/components/StoryDialog'
 import { Button } from '@/components/ui/button'
@@ -8,12 +8,13 @@ import { usePlanningStore } from '@/stores/planning-store'
 import { useDialogStore } from '@/stores/dialog-store'
 import { Plus } from 'lucide-react'
 import type { Story } from '@/types'
+import { DndProvider } from '@/components/DndProvider'
 
 export default function Home() {
   const { currentSession, createSession } = usePlanningStore()
   const { openAddStoryDialog, openEditStoryDialog } = useDialogStore()
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Create a demo session if none exists
     if (!currentSession) {
       createSession('Demo Planning Session')
@@ -40,39 +41,11 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Relative Planning Poker</h1>
-              <p className="text-sm text-muted-foreground">
-                Session: {currentSession.name}
-              </p>
-            </div>
-            <Button onClick={openAddStoryDialog} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Add Story
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 flex flex-col container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-2">Stories</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Drag stories in 2D space to position them relative to the anchor
-            story. Left/Right = Complexity (Lower/Higher), Up/Down = Uncertainty
-            (Lower/Higher). The anchor story (center) cannot be moved.
-            Double-click a story to edit it, or right-click for more options.
-          </p>
-        </div>
-
+    <>
+      <DndProvider>
         <PlanningCanvas onStoryDoubleClick={handleStoryDoubleClick} />
-      </main>
-
+      </DndProvider>
       <StoryDialog />
-    </div>
+    </>
   )
 }

@@ -2,12 +2,14 @@
  * Component exports
  */
 
-export { StoryCard } from './StoryCard';
-export type { StoryCardProps } from './StoryCard';
+export { StoryCard } from './StoryCard'
+export type { StoryCardProps } from './StoryCard'
 
-export { PlanningCanvas } from './PlanningCanvas';
-export type { PlanningCanvasProps } from './PlanningCanvas';
+export { PlanningCanvas } from './PlanningCanvas'
+export type { PlanningCanvasProps } from './PlanningCanvas'
 
-export { DndProvider } from './DndProvider';
+export { DndProvider } from './DndProvider'
 
-export { StoryDialog } from './StoryDialog';
+export { StoryDialog } from './StoryDialog'
+
+export { ThemeToggle } from './ThemeToggle'
