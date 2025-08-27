@@ -3,10 +3,8 @@
 import React, { useEffect } from 'react'
 import { PlanningCanvas } from '@/components/PlanningCanvas'
 import { StoryDialog } from '@/components/StoryDialog'
-import { Button } from '@/components/ui/button'
 import { usePlanningStore } from '@/stores/planning-store'
 import { useDialogStore } from '@/stores/dialog-store'
-import { Plus } from 'lucide-react'
 import type { Story } from '@/types'
 import { DndProvider } from '@/components/DndProvider'
 
@@ -28,8 +26,9 @@ export default function Home() {
   }
 
   if (!currentSession) {
+    // TODO: able to create a new session
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Loading...</h1>
           <p className="text-muted-foreground">

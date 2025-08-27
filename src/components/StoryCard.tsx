@@ -29,7 +29,7 @@ import type { Story } from '@/types'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
 const scoreFormatter = new Intl.NumberFormat('en-US', {
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 2,
 })
 
 export interface StoryCardProps {
@@ -106,8 +106,8 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       className={cn(
         // Base styles
         'select-none transition-all duration-200 ease-in-out',
-        'min-w-[200px] w-full',
-        'border-border bg-card/95',
+        'w-full max-w-xs min-w-xs',
+        'border-border bg-card',
         'hover:z-50',
 
         // Hover states (disabled when dragging)
@@ -118,17 +118,16 @@ export const StoryCard: React.FC<StoryCardProps> = ({
 
         // Dragging states
         isCurrentlyDragging && [
-          'opacity-5 scale-105 shadow-2xl z-50',
+          'opacity-5 scale-105 shadow-2xl',
           'transform-gpu will-change-transform',
         ],
 
         // Anchor story styling
-        story.isAnchor && ['bg-muted pointer-events-none'],
+        story.isAnchor && ['bg-muted'],
 
         // Non-anchor story styling
         !story.isAnchor && [
           'cursor-pointer',
-          !isCurrentlyDragging && 'hover:bg-card',
           // Focus styles for keyboard navigation
           'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
         ],
@@ -153,7 +152,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
               <TooltipTrigger asChild>
                 <Badge
                   className={cn(
-                    'h-3 w-3 rounded-full',
+                    'h-3 w-5 -translate-y-1 rounded-full',
                     'bg-red-500',
                     cardScore > 1 && ['bg-orange-500'],
                     cardScore > 2 && ['bg-amber-500'],
@@ -165,23 +164,35 @@ export const StoryCard: React.FC<StoryCardProps> = ({
                   )}
                   aria-label="Story point indication"
                 >
-                  {scoreFormatter.format(cardScore)}
+                  {/* For debugging purposes, we'll show the score as a number */}
+                  {/* {scoreFormatter.format(cardScore)} */}
                 </Badge>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Amount of work indication</p>
+                <p>
+                  This indicates the amount of work required to complete the
+                  story.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {story.isAnchor && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" aria-label="Anchor story indicator">
+                  <AnchorIcon className="w-3 h-3" aria-hidden="true" />
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  Your anchor story acts as the reference point for the other
+                  stories.
+                </p>
               </TooltipContent>
             </Tooltip>
           )}
         </CardAction>
-        {story.isAnchor && (
-          <CardDescription>
-            <Badge variant="outline" aria-label="Anchor story indicator">
-              <AnchorIcon className="w-3 h-3 mr-1" aria-hidden="true" />
-              Anchor story
-            </Badge>
-          </CardDescription>
-        )}
+        {story.isAnchor && <CardDescription>Anchor story</CardDescription>}
       </CardHeader>
 
       {story.description && (

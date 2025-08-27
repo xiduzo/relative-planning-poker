@@ -12,7 +12,7 @@ import { useDialogStore } from '@/stores/dialog-store'
 import { cn } from '@/lib/utils'
 import { positionToPercentage } from '@/utils/position'
 import { Button } from './ui/button'
-import { Plus } from 'lucide-react'
+import { AnchorIcon, Plus } from 'lucide-react'
 import type { Story } from '@/types'
 import { Badge } from './ui/badge'
 
@@ -185,7 +185,8 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
                   No stories to display
                 </p>
                 <p className="text-sm text-muted-foreground/70">
-                  Add your first anchor story to start planning
+                  Add your first story to act as a reference point to start
+                  planning
                 </p>
               </div>
               <Button
@@ -193,8 +194,8 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
                 size="lg"
                 className="shadow-lg hover:shadow-xl transition-shadow"
               >
-                <Plus className="h-5 w-5" />
-                Add Anchor Story
+                <AnchorIcon className="h-5 w-5" />
+                Add an anchor Story
               </Button>
             </div>
           </div>
@@ -237,10 +238,10 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
       </section>
 
       {/* Actions */}
-      <section className="col-span-1 row-span-1 relative flex items-center h-full min-h-0">
+      <section className="col-span-2 row-span-1 relative flex items-center mt-2">
         <Button variant="outline" onClick={openAddStoryDialog}>
           <Plus className="h-5 w-5" />
-          Add new Story
+          Add a new Story
         </Button>
       </section>
     </div>
