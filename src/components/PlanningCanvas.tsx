@@ -15,6 +15,7 @@ import { useCanvasRef } from './DndProvider'
 import { Button } from './ui/button'
 import { AnchorIcon, Plus } from 'lucide-react'
 import type { Story } from '@/types'
+import { Badge } from './ui/badge'
 
 export interface PlanningCanvasProps {
   className?: string
@@ -91,7 +92,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   return (
     <div
       className={cn(
-        'grid grid-cols-[1fr_4rem] grid-rows-[2rem_1fr] gap-0',
+        'grid grid-cols-[1fr_4rem] grid-rows-[2rem_1fr] gap-0 flex-1 min-h-0',
         className
       )}
     >
@@ -100,20 +101,16 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
         <div className="absolute inset-x-0 top-1/2 h-px bg-border -translate-y-1/2" />
         <div className="absolute left-0 top-1/2 -translate-y-1/2">
           <div className="h-3 w-px bg-green-500" />
-          <div className="absolute top-full mt-1 left-1/2 whitespace-nowrap">
+          <div className="absolute bottom-full left-1/2 whitespace-nowrap">
             <span className="text-xs text-green-600 font-medium">
               Low complexity
             </span>
           </div>
         </div>
 
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <AnchorIcon className="w-4 h-4" aria-label="Anchor" />
-        </div>
-
         <div className="absolute right-0 top-1/2 -translate-y-1/2">
           <div className="h-3 w-px bg-orange-500" />
-          <div className="absolute top-full mt-1 right-1/2 whitespace-nowrap">
+          <div className="absolute bottom-full right-1/2 whitespace-nowrap">
             <span className="text-xs text-orange-600 font-medium">
               High complexity
             </span>
@@ -125,7 +122,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
       <section
         ref={combinedRef}
         className={cn(
-          'relative min-h-[500px] px-4 col-span-1 col-start-1 row-span-1',
+          'relative px-4 col-span-1 col-start-1 row-span-1 h-full',
           'transition-colors duration-200',
           isOver && 'bg-primary/5 rounded-lg',
           'focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2'
@@ -225,42 +222,38 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute inset-4 border-2 border-dashed border-primary/30 rounded-lg animate-pulse" />
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-                Drop to position story
-              </div>
+              <Badge>Drop to position story</Badge>
             </div>
           </div>
         )}
       </section>
 
       {/* Right-side Uncertainty Axis */}
-      <section className="col-span-1 row-span-1 relative flex items-center h-full">
+      <section className="col-span-1 row-span-1 relative flex items-center h-full min-h-0">
         {/* Y-axis line (Uncertainty) */}
         <div className="absolute inset-y-0 left-1/2 w-px bg-border -translate-x-1/2" />
 
         {/* Uncertainty indicators */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2">
           <div className="w-3 h-px bg-blue-500" />
-          <div className="absolute translate-x-1/2 whitespace-nowrap transform rotate-90 origin-left">
+          <div className="absolute top-fullleft-0 whitespace-nowrap transform rotate-90 origin-left translate-x-6 -translate-y-3">
             <span className="text-xs text-blue-600 font-medium">
-              High uncertainty
+              A lot of uncertainty
             </span>
           </div>
-        </div>
-
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <AnchorIcon className="w-4 h-4" aria-label="Anchor" />
         </div>
 
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2">
           <div className="w-3 h-px bg-amber-500" />
-          <div className="absolute -translate-x-1/2 whitespace-nowrap transform rotate-90 origin-right">
+          <div className="absolute bottom-full right-0 whitespace-nowrap transform rotate-90 origin-right translate-x-3 translate-y-3">
             <span className="text-xs text-amber-600 font-medium">
-              Low uncertainty
+              No uncertainty
             </span>
           </div>
         </div>
       </section>
+
+      {/* Actions */}
       {/* Position Summary */}
       {stories.length > 0 && (
         <div className="px-4">

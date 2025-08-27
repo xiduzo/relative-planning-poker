@@ -141,17 +141,11 @@ describe(PlanningCanvas.name, () => {
 
       renderWithDndProvider(<PlanningCanvas />)
 
-      expect(screen.getAllByText('Lower').length).toBeGreaterThanOrEqual(1)
-      expect(screen.getAllByText('Anchor').length).toBeGreaterThanOrEqual(1)
-      expect(screen.getAllByText('Higher').length).toBeGreaterThanOrEqual(1)
       expect(
-        screen.getAllByText('Lower Complexity').length
+        screen.getAllByText('Low complexity').length
       ).toBeGreaterThanOrEqual(1)
       expect(
-        screen.getAllByText('Reference Point').length
-      ).toBeGreaterThanOrEqual(1)
-      expect(
-        screen.getAllByText('Higher Complexity').length
+        screen.getAllByText('High complexity').length
       ).toBeGreaterThanOrEqual(1)
     })
 
