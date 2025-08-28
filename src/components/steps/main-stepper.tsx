@@ -63,13 +63,11 @@ export function MainStepper() {
               })}
             </Stepper.Panel>
             <Stepper.Controls className="flex items-center justify-center">
-              <section className="bg-card shadow-md rounded-lg p-2">
-                {methods.switch({
-                  'step-1': SessionActions,
-                  'step-2': PlanActions,
-                  'step-3': EstimateActions,
-                })}
-              </section>
+              {methods.switch({
+                'step-1': SessionActions,
+                'step-2': PlanActions,
+                'step-3': EstimateActions,
+              })}
             </Stepper.Controls>
           </>
         )}

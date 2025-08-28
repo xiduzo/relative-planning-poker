@@ -95,7 +95,7 @@ export function Session() {
                       <InputOTP
                         maxLength={6}
                         value={field.value}
-                        onChange={field.onChange}
+                        onChange={value => field.onChange(value.toUpperCase())}
                       >
                         <InputOTPGroup>
                           <InputOTPSlot

@@ -25,7 +25,7 @@ import {
   type Position2D,
   type Story,
 } from '@/types'
-import { normalizePosition2D } from '@/utils'
+import { ANCHOR_POSITION, normalizePosition2D } from '@/utils'
 
 interface DndProviderProps {
   children: React.ReactNode
@@ -33,7 +33,9 @@ interface DndProviderProps {
 
 export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   const [activeStory, setActiveStory] = useState<Story | null>(null)
-  const [dragTransform, setDragTransform] = useState<Position2D>({ x: 0, y: 0 })
+  const [dragDelta, setDragDelta] = useState<Position2D>(ANCHOR_POSITION)
+  const previousDragDelta = useRef<Position2D>(ANCHOR_POSITION)
+  const initialActiveStoryPosition = useRef<Position2D>(ANCHOR_POSITION)
 
   const updateStoryPosition = usePlanningStore(
     state => state.updateStoryPosition
@@ -120,13 +122,52 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
     })
   )
 
+  function setStoryPosition(story?: Story | null) {
+    setActiveStory(story ?? null)
+    previousDragDelta.current = story?.position ?? ANCHOR_POSITION
+    initialActiveStoryPosition.current = story?.position ?? ANCHOR_POSITION
+    setDragDelta(previousDragDelta.current)
+  }
+
+  function calculateNewPosition(delta: Position2D, position: Position2D) {
+    const dndCanvas = document.getElementById('dnd-canvas')
+    if (!dndCanvas) return position
+
+    const dndCanvasRect = dndCanvas.getBoundingClientRect()
+
+    const deltaX = (delta.x / dndCanvasRect.width) * POSITION_RANGE
+    const deltaY = (delta.y / dndCanvasRect.height) * POSITION_RANGE
+
+    return {
+      x: position.x + deltaX,
+      y: position.y + deltaY,
+    }
+  }
+
+  function updateDragDelta(delta: Position2D) {
+    setDragDelta({
+      x: delta.x - previousDragDelta.current.x,
+      y: delta.y - previousDragDelta.current.y,
+    })
+    previousDragDelta.current = delta
+    setActiveStory(prev => {
+      if (!prev) return null
+      return {
+        ...prev,
+        position: calculateNewPosition(
+          delta,
+          initialActiveStoryPosition.current
+        ),
+      }
+    })
+  }
+
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
     const story = active.data.current?.story as Story
 
     if (!story) return
-    setActiveStory(story)
-    setDragTransform({ x: 0, y: 0 }) // Reset transform
+    setStoryPosition(story)
   }
 
   const handleDragMove = (event: DragMoveEvent) => {
@@ -137,10 +178,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
     if (story.isAnchor) return
 
     // Update the drag transform for the overlay (only for visual feedback)
-    setDragTransform({
-      x: delta.x,
-      y: delta.y,
-    })
+    updateDragDelta(delta)
   }
 
   const handleDragOver = (_event: DragOverEvent) => {
@@ -152,26 +190,11 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
     const story = active.data.current?.story as Story
     if (!story) return
 
-    const dndCanvas = document.getElementById('dnd-canvas')
-    if (!dndCanvas) return
-
-    const dndCanvasRect = dndCanvas.getBoundingClientRect()
-
-    const { delta } = event
-
-    const deltaX = (delta.x / dndCanvasRect.width) * POSITION_RANGE
-    const deltaY = (delta.y / dndCanvasRect.height) * POSITION_RANGE
-
-    // Calculate new position by adding delta to current position
-    const newPosition = {
-      x: story.position.x + deltaX,
-      y: story.position.y + deltaY,
-    }
-
-    updateStoryPosition(story.id, newPosition)
-
-    setActiveStory(null)
-    setDragTransform({ x: 0, y: 0 })
+    updateStoryPosition(
+      story.id,
+      calculateNewPosition(event.delta, story.position)
+    )
+    setStoryPosition(null)
   }
 
   const handleDragCancel = () => {
@@ -180,8 +203,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
       updateStoryPosition(activeStory.id, activeStory.position)
     }
 
-    setActiveStory(null)
-    setDragTransform({ x: 0, y: 0 })
+    setStoryPosition(null)
   }
 
   return (
@@ -201,12 +223,17 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
           <div
             className="transform scale-105 opacity-90"
             style={{
-              // TODO: rotate3d based on the origin of the story card and the drag transform
-              transform: `rotate(${Math.sign(dragTransform.x) * 3}deg)`,
+              transform: `rotate3d(${dragDelta.y * 10}, ${-dragDelta.x * 10}, 0, ${Math.min((Math.abs(dragDelta.x) + Math.abs(dragDelta.y)) * 5, 25)}deg)`,
             }}
           >
             <StoryCard
-              story={activeStory}
+              story={{
+                ...activeStory,
+                position: {
+                  x: activeStory.position.x + dragDelta.x,
+                  y: activeStory.position.y + dragDelta.y,
+                },
+              }}
               className="shadow-2xl border-primary/50 bg-background/95 backdrop-blur-sm"
               enableDrag={false}
             />
