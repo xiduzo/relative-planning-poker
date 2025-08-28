@@ -7,6 +7,26 @@ import { usePlanningStore } from '@/stores/planning-store'
 import { useDialogStore } from '@/stores/dialog-store'
 import type { Story } from '@/types'
 import { DndProvider } from '@/components/DndProvider'
+import { defineStepper } from '@/components/stepper'
+import { AnchorIcon, GridIcon, MoveIcon, Tally5Icon } from 'lucide-react'
+
+const { Stepper } = defineStepper(
+  {
+    id: 'step-1',
+    title: 'Anchor',
+    icon: <AnchorIcon />,
+  },
+  {
+    id: 'step-2',
+    title: 'Plan',
+    icon: <MoveIcon />,
+  },
+  {
+    id: 'step-3',
+    title: 'Estimate',
+    icon: <Tally5Icon />,
+  }
+)
 
 export default function Home() {
   const { currentSession, createSession } = usePlanningStore()
@@ -18,12 +38,6 @@ export default function Home() {
       createSession('Demo Planning Session')
     }
   }, [currentSession, createSession])
-
-  const handleStoryDoubleClick = (story: Story) => {
-    console.log('Story double-clicked:', story.title)
-    // Open edit dialog when story is double-clicked
-    openEditStoryDialog(story)
-  }
 
   if (!currentSession) {
     // TODO: able to create a new session
@@ -41,9 +55,27 @@ export default function Home() {
 
   return (
     <>
+      <section>
+        <Stepper.Provider>
+          {({ methods }) => (
+            <Stepper.Navigation className="mb-12">
+              {methods.all.map(step => (
+                <Stepper.Step
+                  of={step.id}
+                  onClick={() => methods.goTo(step.id)}
+                  icon={step.icon}
+                >
+                  <Stepper.Title>{step.title}</Stepper.Title>
+                </Stepper.Step>
+              ))}
+            </Stepper.Navigation>
+          )}
+        </Stepper.Provider>
+      </section>
       <DndProvider>
-        <PlanningCanvas onStoryDoubleClick={handleStoryDoubleClick} />
+        <PlanningCanvas onStoryDoubleClick={openEditStoryDialog} />
       </DndProvider>
+      <section>ACTION MENU</section>
       <StoryDialog />
     </>
   )

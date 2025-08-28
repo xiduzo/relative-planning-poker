@@ -15,6 +15,8 @@ import { Button } from './ui/button'
 import { AnchorIcon, Plus } from 'lucide-react'
 import type { Story } from '@/types'
 import { Badge } from './ui/badge'
+import { toast } from 'sonner'
+import { getErrorMessage } from '@/utils/validation'
 
 export interface PlanningCanvasProps {
   className?: string
@@ -55,8 +57,9 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
     try {
       deleteStory(story.id)
     } catch (error) {
-      console.error('Failed to delete story:', error)
-      // You could add toast notification here
+      toast.error('Failed to delete story', {
+        description: getErrorMessage(error),
+      })
     }
   }
 
@@ -148,20 +151,18 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
         </div>
 
         {/* Stories positioned in 2D space */}
-        {stories.map(story => {
+        {stories.map((story, index) => {
           const percentagePosition = positionToPercentage(story.position)
 
           return (
             <div
               key={story.id}
-              className="absolute"
+              className="absolute hover:!z-50"
               style={{
                 left: percentagePosition.left,
                 top: percentagePosition.top,
                 transform: 'translate(-50%, -50%)',
-                zIndex: story.isAnchor ? 10 : 1,
-                // Disable transitions for immediate positioning during drag
-                transition: 'none',
+                zIndex: index,
               }}
             >
               <StoryCard
@@ -170,7 +171,6 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
                 onEdit={() => handleEditStory(story)}
                 onDelete={() => handleDeleteStory(story)}
                 onMakeAnchor={() => handleMakeAnchor(story)}
-                className="transition-transform duration-200"
               />
             </div>
           )

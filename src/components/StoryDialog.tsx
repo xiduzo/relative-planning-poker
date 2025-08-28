@@ -1,10 +1,10 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import React from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/components/ui/dialog'
 import {
   Form,
   FormControl,
@@ -20,21 +20,27 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { useDialogStore } from '@/stores/dialog-store';
-import { usePlanningStore } from '@/stores/planning-store';
-import { CreateStoryInputSchema, STORY_TITLE_MAX_LENGTH, STORY_DESCRIPTION_MAX_LENGTH } from '@/types';
-import { Trash2 } from 'lucide-react';
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { useDialogStore } from '@/stores/dialog-store'
+import { usePlanningStore } from '@/stores/planning-store'
+import {
+  CreateStoryInputSchema,
+  STORY_TITLE_MAX_LENGTH,
+  STORY_DESCRIPTION_MAX_LENGTH,
+} from '@/types'
+import { Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 
-const formSchema = CreateStoryInputSchema;
+const formSchema = CreateStoryInputSchema
 
-type FormData = z.infer<typeof formSchema>;
+type FormData = z.infer<typeof formSchema>
 
 export function StoryDialog() {
-  const { isStoryDialogOpen, dialogMode, storyToEdit, closeStoryDialog } = useDialogStore();
-  const { addStory, updateStory, deleteStory } = usePlanningStore();
+  const { isStoryDialogOpen, dialogMode, storyToEdit, closeStoryDialog } =
+    useDialogStore()
+  const { addStory, updateStory, deleteStory } = usePlanningStore()
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -42,7 +48,7 @@ export function StoryDialog() {
       title: '',
       description: '',
     },
-  });
+  })
 
   // Update form when storyToEdit changes
   React.useEffect(() => {
@@ -50,62 +56,60 @@ export function StoryDialog() {
       form.reset({
         title: storyToEdit.title,
         description: storyToEdit.description,
-      });
+      })
     } else {
       form.reset({
         title: '',
         description: '',
-      });
+      })
     }
-  }, [storyToEdit, dialogMode, form]);
+  }, [storyToEdit, dialogMode, form])
 
   const onSubmit = (data: FormData) => {
     try {
       if (dialogMode === 'add') {
-        addStory(data);
+        addStory(data)
       } else if (dialogMode === 'edit' && storyToEdit) {
-        updateStory(storyToEdit.id, data);
+        updateStory(storyToEdit.id, data)
       }
-      form.reset();
-      closeStoryDialog();
+      form.reset()
+      closeStoryDialog()
     } catch (error) {
-      console.error('Failed to save story:', error);
+      console.error('Failed to save story:', error)
       // You could add toast notification here
     }
-  };
+  }
 
   const handleDelete = () => {
     if (dialogMode === 'edit' && storyToEdit) {
       try {
-        deleteStory(storyToEdit.id);
-        closeStoryDialog();
+        deleteStory(storyToEdit.id)
+        closeStoryDialog()
       } catch (error) {
-        console.error('Failed to delete story:', error);
-        // You could add toast notification here
+        // console.error('Failed to delete story:', error)
+        toast.error('Failed to delete story')
       }
     }
-  };
+  }
 
   const handleCancel = () => {
-    form.reset();
-    closeStoryDialog();
-  };
+    form.reset()
+    closeStoryDialog()
+  }
 
-  const isEditMode = dialogMode === 'edit';
-  const dialogTitle = isEditMode ? 'Edit Story' : 'Add New Story';
-  const dialogDescription = isEditMode 
+  const isEditMode = dialogMode === 'edit'
+  const dialogTitle = isEditMode ? 'Edit Story' : 'Add New Story'
+  const dialogDescription = isEditMode
     ? 'Update the details of your user story.'
-    : 'Create a new user story for your planning session. Fill in the details below.';
-  const submitButtonText = isEditMode ? 'Update Story' : 'Add Story';
+    : 'Create a new user story for your planning session. Fill in the details below.'
+  const submitButtonText = isEditMode ? 'Update Story' : 'Add Story'
 
   return (
     <Dialog open={isStoryDialogOpen} onOpenChange={closeStoryDialog}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
-          <DialogDescription>
-            {dialogDescription}
-          </DialogDescription>
+          <DialogDescription>{dialogDescription}</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -150,9 +154,9 @@ export function StoryDialog() {
 
             <DialogFooter className="gap-2">
               {isEditMode && (
-                <Button 
-                  type="button" 
-                  variant="destructive" 
+                <Button
+                  type="button"
+                  variant="destructive"
                   onClick={handleDelete}
                   className="gap-2"
                 >
@@ -171,5 +175,5 @@ export function StoryDialog() {
         </Form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

@@ -19,7 +19,13 @@ import {
 } from '@dnd-kit/core'
 import { StoryCard } from './StoryCard'
 import { usePlanningStore } from '@/stores/planning-store'
-import type { Position2D, Story } from '@/types'
+import {
+  POSITION_MIN,
+  POSITION_RANGE,
+  type Position2D,
+  type Story,
+} from '@/types'
+import { normalizePosition2D } from '@/utils'
 
 interface DndProviderProps {
   children: React.ReactNode
@@ -32,7 +38,35 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   const updateStoryPosition = usePlanningStore(
     state => state.updateStoryPosition
   )
+  const deleteStory = usePlanningStore(state => state.deleteStory)
   const currentSession = usePlanningStore(state => state.currentSession)
+
+  function adjustPosition(event: KeyboardEvent, story: Story) {
+    if (story.isAnchor) return
+
+    const POSITION_CHANGE = event.shiftKey ? 10 : 2
+
+    let newX = story.position.x
+    let newY = story.position.y
+
+    switch (event.key) {
+      case 'ArrowRight':
+        newX += POSITION_CHANGE
+        break
+      case 'ArrowLeft':
+        newX -= POSITION_CHANGE
+        break
+      case 'ArrowDown':
+        newY += POSITION_CHANGE
+        break
+      case 'ArrowUp':
+        newY -= POSITION_CHANGE
+        break
+    }
+
+    const newPosition = normalizePosition2D({ x: newX, y: newY })
+    updateStoryPosition(story.id, newPosition)
+  }
 
   // Handle keyboard navigation for focused story cards
   useEffect(() => {
@@ -42,6 +76,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
         'ArrowRight',
         'ArrowUp',
         'ArrowDown',
+        'Backspace',
       ].includes(event.key)
       if (!isActionKey) return
 
@@ -52,40 +87,22 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
 
       // Get the story ID from the focused element
       const storyId = focusedElement.getAttribute('data-story-id')
-      if (!storyId || !currentSession || !currentSession.stories) return
+      if (!storyId || !currentSession?.stories) return
 
       const story = currentSession.stories.find(s => s.id === storyId)
       if (!story) return
 
-      if (story.isAnchor) return
-
-      // Calculate position change for keyboard navigation
-      const positionChange = 2 // Fixed increment for keyboard movement
-      const modifier = event.shiftKey ? 10 : 1
-      let newX = story.position.x
-      let newY = story.position.y
-
       switch (event.key) {
         case 'ArrowRight':
-          newX += positionChange * modifier
-          break
         case 'ArrowLeft':
-          newX -= positionChange * modifier
-          break
         case 'ArrowDown':
-          newY += positionChange * modifier
-          break
         case 'ArrowUp':
-          newY -= positionChange * modifier
+          adjustPosition(event, story)
+          break
+        case 'Backspace':
+          deleteStory(storyId)
           break
       }
-
-      const newPosition = {
-        x: Math.max(-100, Math.min(100, newX)),
-        y: Math.max(-100, Math.min(100, newY)),
-      }
-
-      updateStoryPosition(storyId, newPosition)
     }
 
     document.addEventListener('keydown', handleKeyDown)
@@ -93,7 +110,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [currentSession, updateStoryPosition])
+  }, [currentSession, updateStoryPosition, deleteStory])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -141,12 +158,9 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
     const dndCanvasRect = dndCanvas.getBoundingClientRect()
 
     const { delta } = event
-    console.log('finalPosition', event, story.position, event.delta)
-    console.log('dndCanvasRect', dndCanvasRect)
 
-    // Translate delta based on the canvas rect to a Position2D that the story needs
-    const deltaX = (delta.x / dndCanvasRect.width) * 200 // Convert to -100 to 100 range
-    const deltaY = (delta.y / dndCanvasRect.height) * 200 // Convert to -100 to 100 range
+    const deltaX = (delta.x / dndCanvasRect.width) * POSITION_RANGE
+    const deltaY = (delta.y / dndCanvasRect.height) * POSITION_RANGE
 
     // Calculate new position by adding delta to current position
     const newPosition = {
@@ -154,8 +168,6 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
       y: story.position.y + deltaY,
     }
 
-    console.log('newPosition', newPosition)
-    // Update the story position
     updateStoryPosition(story.id, newPosition)
 
     setActiveStory(null)

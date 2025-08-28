@@ -106,9 +106,8 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       className={cn(
         // Base styles
         'select-none transition-all duration-200 ease-in-out',
-        'w-full max-w-xs min-w-xs',
+        'w-full max-w-xs min-w-[175px]',
         'border-border bg-card',
-        'hover:z-50',
 
         // Hover states (disabled when dragging)
         !isCurrentlyDragging &&

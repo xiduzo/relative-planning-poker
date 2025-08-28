@@ -2,22 +2,22 @@
  * Zod-based validation utilities with proper error handling
  */
 
-import { ZodError } from 'zod';
-import type { 
-  Story, 
-  CreateStoryInput, 
-  UpdateStoryInput, 
-  ValidationResult, 
+import { ZodError } from 'zod'
+import type {
+  Story,
+  CreateStoryInput,
+  UpdateStoryInput,
+  ValidationResult,
   ValidationError,
-  PlanningSession 
-} from '../types';
+  PlanningSession,
+} from '../types'
 import {
   StorySchema,
   CreateStoryInputSchema,
   UpdateStoryInputSchema,
   PlanningSessionSchema,
-  PointCutoffSchema
-} from '../types';
+  PointCutoffSchema,
+} from '../types'
 
 /**
  * Converts Zod errors to our ValidationError format
@@ -25,49 +25,66 @@ import {
 function zodErrorToValidationErrors(error: ZodError): ValidationError[] {
   return error.issues.map(issue => ({
     field: issue.path.join('.'),
-    message: issue.message
-  }));
+    message: issue.message,
+  }))
+}
+
+/**
+ * Converts an error to a human-readable message
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (error instanceof ZodError) {
+    return error.issues.map(issue => issue.message).join(', ')
+  }
+  return 'An unknown error occurred'
 }
 
 /**
  * Validates create story input using Zod schema
  */
-export function validateCreateStoryInput(input: CreateStoryInput): ValidationResult {
+export function validateCreateStoryInput(
+  input: CreateStoryInput
+): ValidationResult {
   try {
-    CreateStoryInputSchema.parse(input);
+    CreateStoryInputSchema.parse(input)
     return {
       isValid: true,
-      errors: []
-    };
+      errors: [],
+    }
   } catch (error) {
     if (error instanceof ZodError) {
       return {
         isValid: false,
-        errors: zodErrorToValidationErrors(error)
-      };
+        errors: zodErrorToValidationErrors(error),
+      }
     }
-    throw error;
+    throw error
   }
 }
 
 /**
  * Validates update story input using Zod schema
  */
-export function validateUpdateStoryInput(input: UpdateStoryInput): ValidationResult {
+export function validateUpdateStoryInput(
+  input: UpdateStoryInput
+): ValidationResult {
   try {
-    UpdateStoryInputSchema.parse(input);
+    UpdateStoryInputSchema.parse(input)
     return {
       isValid: true,
-      errors: []
-    };
+      errors: [],
+    }
   } catch (error) {
     if (error instanceof ZodError) {
       return {
         isValid: false,
-        errors: zodErrorToValidationErrors(error)
-      };
+        errors: zodErrorToValidationErrors(error),
+      }
     }
-    throw error;
+    throw error
   }
 }
 
@@ -76,19 +93,19 @@ export function validateUpdateStoryInput(input: UpdateStoryInput): ValidationRes
  */
 export function validateStory(story: Story): ValidationResult {
   try {
-    StorySchema.parse(story);
+    StorySchema.parse(story)
     return {
       isValid: true,
-      errors: []
-    };
+      errors: [],
+    }
   } catch (error) {
     if (error instanceof ZodError) {
       return {
         isValid: false,
-        errors: zodErrorToValidationErrors(error)
-      };
+        errors: zodErrorToValidationErrors(error),
+      }
     }
-    throw error;
+    throw error
   }
 }
 
@@ -97,63 +114,69 @@ export function validateStory(story: Story): ValidationResult {
  */
 export function validatePointValue(pointValue: number): ValidationResult {
   try {
-    PointCutoffSchema.shape.pointValue.parse(pointValue);
+    PointCutoffSchema.shape.pointValue.parse(pointValue)
     return {
       isValid: true,
-      errors: []
-    };
+      errors: [],
+    }
   } catch (error) {
     if (error instanceof ZodError) {
       return {
         isValid: false,
-        errors: zodErrorToValidationErrors(error)
-      };
+        errors: zodErrorToValidationErrors(error),
+      }
     }
-    throw error;
+    throw error
   }
 }
 
 /**
  * Validates story uniqueness within a session
  */
-export function validateStoryUniqueness(stories: Story[], newStory: CreateStoryInput): ValidationResult {
-  const errors: ValidationError[] = [];
+export function validateStoryUniqueness(
+  stories: Story[],
+  newStory: CreateStoryInput
+): ValidationResult {
+  const errors: ValidationError[] = []
 
-  const duplicateTitle = stories.find(story => 
-    story.title.toLowerCase().trim() === newStory.title.toLowerCase().trim()
-  );
+  const duplicateTitle = stories.find(
+    story =>
+      story.title.toLowerCase().trim() === newStory.title.toLowerCase().trim()
+  )
 
   if (duplicateTitle) {
     errors.push({
       field: 'title',
-      message: 'A story with this title already exists in the session'
-    });
+      message: 'A story with this title already exists in the session',
+    })
   }
 
   return {
     isValid: errors.length === 0,
-    errors
-  };
+    errors,
+  }
 }
 
 /**
  * Comprehensive session validation using Zod schema
  */
-export function validatePlanningSession(session: PlanningSession): ValidationResult {
+export function validatePlanningSession(
+  session: PlanningSession
+): ValidationResult {
   try {
-    PlanningSessionSchema.parse(session);
+    PlanningSessionSchema.parse(session)
     return {
       isValid: true,
-      errors: []
-    };
+      errors: [],
+    }
   } catch (error) {
     if (error instanceof ZodError) {
       return {
         isValid: false,
-        errors: zodErrorToValidationErrors(error)
-      };
+        errors: zodErrorToValidationErrors(error),
+      }
     }
-    throw error;
+    throw error
   }
 }
 
@@ -161,17 +184,17 @@ export function validatePlanningSession(session: PlanningSession): ValidationRes
  * Safe parsing functions that return parsed data or validation errors
  */
 export function parseCreateStoryInput(input: unknown) {
-  return CreateStoryInputSchema.safeParse(input);
+  return CreateStoryInputSchema.safeParse(input)
 }
 
 export function parseUpdateStoryInput(input: unknown) {
-  return UpdateStoryInputSchema.safeParse(input);
+  return UpdateStoryInputSchema.safeParse(input)
 }
 
 export function parseStory(input: unknown) {
-  return StorySchema.safeParse(input);
+  return StorySchema.safeParse(input)
 }
 
 export function parsePlanningSession(input: unknown) {
-  return PlanningSessionSchema.safeParse(input);
+  return PlanningSessionSchema.safeParse(input)
 }

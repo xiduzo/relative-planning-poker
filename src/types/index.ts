@@ -7,6 +7,7 @@ import { z } from 'zod'
 // Constants for validation
 export const POSITION_MIN = -100
 export const POSITION_MAX = 100
+export const POSITION_RANGE = POSITION_MAX - POSITION_MIN
 export const STORY_TITLE_MAX_LENGTH = 100
 export const STORY_DESCRIPTION_MAX_LENGTH = 500
 export const SESSION_NAME_MAX_LENGTH = 50

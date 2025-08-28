@@ -3,7 +3,7 @@
  */
 
 import type { Story, Position2D } from '../types'
-import { POSITION_MIN, POSITION_MAX } from '../types'
+import { POSITION_MIN, POSITION_MAX, POSITION_RANGE } from '../types'
 
 // Additional constants for position calculations
 export const ANCHOR_POSITION: Position2D = { x: 0, y: 0 }
@@ -171,7 +171,7 @@ function calculateAxisScore(value: number, isLowerBetter: boolean): number {
   const EXPONENTIAL = 1.65
 
   // Normalize to 0-1 range
-  const normalized = (value - POSITION_MIN) / (POSITION_MAX - POSITION_MIN)
+  const normalized = (value - POSITION_MIN) / POSITION_RANGE
 
   // For lower-is-better axes, invert the normalized value
   const adjustedValue = isLowerBetter ? 1 - normalized : normalized
