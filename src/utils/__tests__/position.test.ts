@@ -3,80 +3,160 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { POSITION_MIN, POSITION_MAX } from '../../types'
-import { createTestStory } from '../../test/utils'
 import {
-  normalizePosition,
-  calculateDistance,
-  areStoriesOverlapping,
+  normalizePosition2D,
+  positionToPercentage,
+  calculatePositionScore,
+  adjustStoriesRelativeToNewAnchor,
+  ANCHOR_POSITION,
 } from '../position'
+import type { Story } from '../../types'
 
-describe(normalizePosition.name, () => {
-  it.each([
-    [0, 0, 'zero position'],
-    [50, 50, 'positive position within range'],
-    [-50, -50, 'negative position within range'],
-    [POSITION_MIN, POSITION_MIN, 'minimum boundary'],
-    [POSITION_MAX, POSITION_MAX, 'maximum boundary'],
-  ])('should return %i as %i for %s', (input, expected) => {
-    expect(normalizePosition(input)).toBe(expected)
-  })
-
-  it.each([
-    [-150, POSITION_MIN, 'far below minimum'],
-    [-101, POSITION_MIN, 'just below minimum'],
-  ])('should clamp %i to minimum value %i (%s)', (input, expected) => {
-    expect(normalizePosition(input)).toBe(expected)
-  })
-
-  it.each([
-    [150, POSITION_MAX, 'far above maximum'],
-    [101, POSITION_MAX, 'just above maximum'],
-  ])('should clamp %i to maximum value %i (%s)', (input, expected) => {
-    expect(normalizePosition(input)).toBe(expected)
-  })
-})
-
-describe(calculateDistance.name, () => {
-  it.each([
-    [0, 10, 10, 'positive positions'],
-    [10, 0, 10, 'reversed positive positions'],
-    [-10, 10, 20, 'negative to positive'],
-    [10, -10, 20, 'positive to negative'],
-    [5, 5, 0, 'same positions'],
-    [-5, -5, 0, 'same negative positions'],
-  ])(
-    'should calculate distance between %i and %i as %i (%s)',
-    (pos1, pos2, expected) => {
-      expect(calculateDistance(pos1, pos2)).toBe(expected)
-    }
-  )
-})
-
-describe(areStoriesOverlapping.name, () => {
-  const story1 = createTestStory({ id: '1', position: { x: 0, y: 0 } })
-
-  it.each([
-    [1, undefined, true, 'overlapping with default spacing'],
-    [5, undefined, false, 'non-overlapping with default spacing'],
-    [1, 0.5, false, 'non-overlapping with custom spacing'],
-    [0, undefined, true, 'same position stories'],
-    [
-      2,
-      undefined,
-      false,
-      'exactly at default spacing threshold (not overlapping)',
-    ],
-    [1.9, undefined, true, 'just under default spacing threshold'],
-  ])(
-    'should detect overlap between positions 0 and %i with spacing %s as %s (%s)',
-    (position2, minSpacing, expected, description) => {
-      const story2 = createTestStory({
-        id: '2',
-        position: { x: position2, y: 0 },
+describe('Position utilities', () => {
+  describe('normalizePosition2D', () => {
+    it('should normalize position within bounds', () => {
+      expect(normalizePosition2D({ x: 150, y: -150 })).toEqual({
+        x: 100,
+        y: -100,
       })
-      const result = areStoriesOverlapping(story1, story2, minSpacing)
-      expect(result).toBe(expected)
-    }
-  )
+      expect(normalizePosition2D({ x: -50, y: 50 })).toEqual({ x: -50, y: 50 })
+    })
+  })
+
+  describe('positionToPercentage', () => {
+    it('should convert position to percentage', () => {
+      const result = positionToPercentage({ x: 0, y: 0 })
+      expect(result.left).toBe('50%')
+      expect(result.top).toBe('50%')
+    })
+  })
+
+  describe('calculatePositionScore', () => {
+    it('should calculate position score', () => {
+      const score = calculatePositionScore({ x: 0, y: 0 })
+      expect(score).toBeGreaterThan(0)
+      expect(score).toBeLessThanOrEqual(10)
+    })
+  })
+
+  describe('adjustStoriesRelativeToNewAnchor', () => {
+    it('should adjust story positions relative to new anchor', () => {
+      const stories: Story[] = [
+        {
+          id: 'anchor',
+          title: 'Old Anchor',
+          description: '',
+          position: { x: 10, y: 20 },
+          isAnchor: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'story1',
+          title: 'Story 1',
+          description: '',
+          position: { x: 30, y: 40 },
+          isAnchor: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'story2',
+          title: 'Story 2',
+          description: '',
+          position: { x: 50, y: 60 },
+          isAnchor: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]
+
+      const result = adjustStoriesRelativeToNewAnchor(stories, 'story1')
+
+      // New anchor should be at anchor position
+      const newAnchor = result.find(s => s.id === 'story1')
+      expect(newAnchor?.position).toEqual(ANCHOR_POSITION)
+      expect(newAnchor?.isAnchor).toBe(true)
+
+      // Other stories should maintain relative positions
+      const oldAnchor = result.find(s => s.id === 'anchor')
+      expect(oldAnchor?.position).toEqual({ x: 0, y: 0 }) // Old anchor relative to itself is (0,0)
+
+      const story2 = result.find(s => s.id === 'story2')
+      expect(story2?.position).toEqual({ x: 40, y: 40 }) // 50-10, 60-20 (relative to old anchor)
+    })
+
+    it('should handle case with no previous anchor', () => {
+      const stories: Story[] = [
+        {
+          id: 'story1',
+          title: 'Story 1',
+          description: '',
+          position: { x: 10, y: 20 },
+          isAnchor: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'story2',
+          title: 'Story 2',
+          description: '',
+          position: { x: 30, y: 40 },
+          isAnchor: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]
+
+      const result = adjustStoriesRelativeToNewAnchor(stories, 'story1')
+
+      // New anchor should be at anchor position
+      const newAnchor = result.find(s => s.id === 'story1')
+      expect(newAnchor?.position).toEqual(ANCHOR_POSITION)
+      expect(newAnchor?.isAnchor).toBe(true)
+
+      // Other stories should keep their original positions
+      const story2 = result.find(s => s.id === 'story2')
+      expect(story2?.position).toEqual({ x: 30, y: 40 })
+    })
+
+    it('should handle custom anchor position', () => {
+      const stories: Story[] = [
+        {
+          id: 'anchor',
+          title: 'Old Anchor',
+          description: '',
+          position: { x: 10, y: 20 },
+          isAnchor: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'story1',
+          title: 'Story 1',
+          description: '',
+          position: { x: 30, y: 40 },
+          isAnchor: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]
+
+      const customAnchorPos = { x: 50, y: 60 }
+      const result = adjustStoriesRelativeToNewAnchor(
+        stories,
+        'story1',
+        customAnchorPos
+      )
+
+      // New anchor should be at custom position
+      const newAnchor = result.find(s => s.id === 'story1')
+      expect(newAnchor?.position).toEqual(customAnchorPos)
+      expect(newAnchor?.isAnchor).toBe(true)
+
+      // Old anchor should maintain relative position from new anchor
+      const oldAnchor = result.find(s => s.id === 'anchor')
+      expect(oldAnchor?.position).toEqual({ x: 50, y: 60 }) // Old anchor relative to itself is (0,0), so it's at the new anchor position
+    })
+  })
 })

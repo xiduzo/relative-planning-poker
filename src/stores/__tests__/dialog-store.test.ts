@@ -6,7 +6,7 @@ const mockStory: Story = {
   id: 'test-story-1',
   title: 'Test Story',
   description: 'Test description',
-  position: 0,
+  position: { x: 0, y: 0 },
   isAnchor: false,
   createdAt: new Date(),
   updatedAt: new Date(),

@@ -8,6 +8,7 @@ import { POSITION_MIN, POSITION_MAX, POSITION_RANGE } from '../types'
 // Additional constants for position calculations
 export const ANCHOR_POSITION: Position2D = { x: 0, y: 0 }
 export const DEFAULT_SPACING = 10
+const ONE_HUNDRED_PERCENT = 100
 
 /**
  * Normalizes a 2D position value to be within the valid range
@@ -20,144 +21,21 @@ export function normalizePosition2D(position: Position2D): Position2D {
 }
 
 /**
- * Normalizes a single position value to be within the valid range (for backward compatibility)
- */
-export function normalizePosition(position: number): number {
-  return Math.max(POSITION_MIN, Math.min(POSITION_MAX, position))
-}
-
-/**
- * Calculates the relative position between two stories in 2D space
- */
-export function calculateRelativePosition2D(
-  story1: Story,
-  story2: Story,
-  ratio: number = 0.5
-): Position2D {
-  const pos1 = story1.position
-  const pos2 = story2.position
-
-  const newPosition: Position2D = {
-    x: pos1.x + (pos2.x - pos1.x) * ratio,
-    y: pos1.y + (pos2.y - pos1.y) * ratio,
-  }
-
-  return normalizePosition2D(newPosition)
-}
-
-/**
- * Calculates the distance between two 2D positions
- */
-export function calculateDistance2D(
-  position1: Position2D,
-  position2: Position2D
-): number {
-  const dx = position2.x - position1.x
-  const dy = position2.y - position1.y
-  return Math.sqrt(dx * dx + dy * dy)
-}
-
-/**
- * Finds the closest story to a given 2D position
- */
-export function findClosestStory2D(
-  stories: Story[],
-  targetPosition: Position2D
-): Story | null {
-  if (stories.length === 0) {
-    return null
-  }
-
-  return stories.reduce((closest, current) => {
-    const currentDistance = calculateDistance2D(
-      current.position,
-      targetPosition
-    )
-    const closestDistance = calculateDistance2D(
-      closest.position,
-      targetPosition
-    )
-
-    return currentDistance < closestDistance ? current : closest
-  })
-}
-
-/**
- * Checks if two stories are too close together in 2D space
- */
-export function areStoriesOverlapping2D(
-  story1: Story,
-  story2: Story,
-  minSpacing: number = 10
-): boolean {
-  return calculateDistance2D(story1.position, story2.position) < minSpacing
-}
-
-/**
- * Snaps a 2D position to the nearest valid grid position
- */
-export function snapToGrid2D(
-  position: Position2D,
-  gridSize: number = 5
-): Position2D {
-  return {
-    x: Math.round(position.x / gridSize) * gridSize,
-    y: Math.round(position.y / gridSize) * gridSize,
-  }
-}
-
-/**
  * Converts a 2D position to percentage coordinates for CSS positioning
  */
 export function positionToPercentage(position: Position2D): {
   left: string
   top: string
 } {
-  // Convert from -100 to 100 range to 0% to 100% range
-  const leftPercentage = ((position.x + 100) / 200) * 100
-  const topPercentage = ((position.y + 100) / 200) * 100
+  const leftPercentage =
+    ((position.x + POSITION_MAX) / POSITION_RANGE) * ONE_HUNDRED_PERCENT
+  const topPercentage =
+    ((position.y + POSITION_MAX) / POSITION_RANGE) * ONE_HUNDRED_PERCENT
 
   return {
-    left: `${Math.max(0, Math.min(100, leftPercentage))}%`,
-    top: `${Math.max(0, Math.min(100, topPercentage))}%`,
+    left: `${Math.max(0, Math.min(ONE_HUNDRED_PERCENT, leftPercentage))}%`,
+    top: `${Math.max(0, Math.min(ONE_HUNDRED_PERCENT, topPercentage))}%`,
   }
-}
-
-/**
- * Converts pixel coordinates to 2D position coordinates
- */
-export function pixelsToPosition2D(
-  x: number,
-  y: number,
-  containerWidth: number,
-  containerHeight: number
-): Position2D {
-  // Convert from pixel coordinates to -100 to 100 range
-  const positionX = (x / containerWidth) * 200 - 100
-  const positionY = (y / containerHeight) * 200 - 100
-
-  return normalizePosition2D({ x: positionX, y: positionY })
-}
-
-/**
- * @deprecated Use calculateDistance2D instead
- */
-export function calculateDistance(
-  position1: number,
-  position2: number
-): number {
-  return Math.abs(position1 - position2)
-}
-
-/**
- * @deprecated Use areStoriesOverlapping2D instead
- */
-export function areStoriesOverlapping(
-  story1: Story,
-  story2: Story,
-  minSpacing: number = 2
-): boolean {
-  return Math.abs(story1.position.x - story2.position.x) < minSpacing
 }
 
 /**
@@ -192,4 +70,58 @@ export function calculatePositionScore(position: Position2D): number {
   const yScore = calculateAxisScore(position.y, false)
 
   return xScore + yScore
+}
+
+/**
+ * Adjusts story positions relative to a new anchor story
+ * @param stories - Array of all stories
+ * @param newAnchorStoryId - ID of the story to become the new anchor
+ * @param anchorPosition - Position where the new anchor should be placed (defaults to 0,0)
+ * @returns Array of stories with adjusted positions
+ */
+export function adjustStoriesRelativeToNewAnchor(
+  stories: Story[],
+  newAnchorStoryId: string,
+  anchorPosition: Position2D = ANCHOR_POSITION
+): Story[] {
+  const currentAnchorStory = stories.find(s => s.isAnchor)
+  const now = new Date()
+
+  return stories.map(story => {
+    if (story.id === newAnchorStoryId) {
+      // This is the new anchor story - move it to the anchor position
+      return {
+        ...story,
+        position: anchorPosition,
+        isAnchor: true,
+        updatedAt: now,
+      }
+    }
+
+    if (!currentAnchorStory) {
+      // No previous anchor, keep current position but ensure isAnchor is false
+      return {
+        ...story,
+        isAnchor: false,
+        updatedAt: now,
+      }
+    }
+
+    // Calculate the relative position from the old anchor to this story
+    const relativeX = story.position.x - currentAnchorStory.position.x
+    const relativeY = story.position.y - currentAnchorStory.position.y
+
+    // Apply the same relative position from the new anchor
+    const newPosition = normalizePosition2D({
+      x: anchorPosition.x + relativeX,
+      y: anchorPosition.y + relativeY,
+    })
+
+    return {
+      ...story,
+      position: newPosition,
+      isAnchor: false,
+      updatedAt: now,
+    }
+  })
 }

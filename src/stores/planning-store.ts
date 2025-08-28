@@ -15,15 +15,20 @@ import {
   PlanningSessionSchema,
 } from '@/types'
 import { generateId } from '@/utils'
-import { normalizePosition2D, ANCHOR_POSITION } from '@/utils/position'
+import {
+  normalizePosition2D,
+  ANCHOR_POSITION,
+  adjustStoriesRelativeToNewAnchor,
+} from '@/utils/position'
 
 export interface PlanningStore {
   // State
   currentSession: PlanningSession | null
+  sessions: Record<string, PlanningSession>
 
   // Session actions
-  createSession: (name: string) => void
-  loadSession: (sessionId: string) => boolean
+  createSession: (name: string, code: string) => void
+  loadSessionByCode: (code: string) => boolean
   clearSession: () => void
 
   // Story management actions
@@ -62,38 +67,18 @@ const getAllSessions = (): Record<string, PlanningSession> => {
   }
 }
 
-// Helper function to save session to localStorage
-const saveSession = (session: PlanningSession): void => {
-  try {
-    const sessions = getAllSessions()
-    sessions[session.id] = session
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
-  } catch (error) {
-    console.error('Failed to save session to localStorage:', error)
-  }
-}
-
-// Helper function to delete session from localStorage
-const deleteSessionFromStorage = (sessionId: string): void => {
-  try {
-    const sessions = getAllSessions()
-    delete sessions[sessionId]
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
-  } catch (error) {
-    console.error('Failed to delete session from localStorage:', error)
-  }
-}
-
 export const usePlanningStore = create<PlanningStore>()(
   persist(
     (set, get) => ({
       currentSession: null,
+      sessions: {},
 
-      createSession: (name: string) => {
+      createSession: (name: string, code: string) => {
         const now = new Date()
         const session: PlanningSession = {
           id: generateId(),
-          name: name.trim(),
+          name: name,
+          code: code,
           stories: [],
           anchorStoryId: null,
           pointCutoffs: [],
@@ -109,14 +94,18 @@ export const usePlanningStore = create<PlanningStore>()(
           throw new Error('Failed to create session: Invalid data')
         }
 
-        set({ currentSession: session })
-        saveSession(session)
+        set({
+          currentSession: session,
+          sessions: { ...get().sessions, [session.id]: session },
+        })
       },
 
-      loadSession: (sessionId: string) => {
+      loadSessionByCode: (code: string) => {
         try {
           const sessions = getAllSessions()
-          const session = sessions[sessionId]
+          const session = Object.values(sessions).find(
+            session => session.code === code
+          )
 
           if (!session) {
             return false
@@ -148,16 +137,12 @@ export const usePlanningStore = create<PlanningStore>()(
           set({ currentSession: parsedSession })
           return true
         } catch (error) {
-          console.error('Failed to load session:', error)
+          console.error('Failed to load session by code:', error)
           return false
         }
       },
 
       clearSession: () => {
-        const { currentSession } = get()
-        if (currentSession) {
-          deleteSessionFromStorage(currentSession.id)
-        }
         set({ currentSession: null })
       },
 
@@ -203,8 +188,10 @@ export const usePlanningStore = create<PlanningStore>()(
           lastModified: now,
         }
 
-        set({ currentSession: updatedSession })
-        saveSession(updatedSession)
+        set({
+          currentSession: updatedSession,
+          sessions: { ...get().sessions, [updatedSession.id]: updatedSession },
+        })
       },
 
       updateStory: (
@@ -251,8 +238,10 @@ export const usePlanningStore = create<PlanningStore>()(
           lastModified: now,
         }
 
-        set({ currentSession: updatedSession })
-        saveSession(updatedSession)
+        set({
+          currentSession: updatedSession,
+          sessions: { ...get().sessions, [updatedSession.id]: updatedSession },
+        })
       },
 
       updateStoryPosition: (
@@ -294,8 +283,10 @@ export const usePlanningStore = create<PlanningStore>()(
           lastModified: now,
         }
 
-        set({ currentSession: updatedSession })
-        saveSession(updatedSession)
+        set({
+          currentSession: updatedSession,
+          sessions: { [updatedSession.id]: updatedSession },
+        })
       },
 
       deleteStory: (storyId: string) => {
@@ -347,8 +338,10 @@ export const usePlanningStore = create<PlanningStore>()(
           lastModified: now,
         }
 
-        set({ currentSession: updatedSession })
-        saveSession(updatedSession)
+        set({
+          currentSession: updatedSession,
+          sessions: { ...get().sessions, [updatedSession.id]: updatedSession },
+        })
       },
 
       setAnchorStory: (storyId: string) => {
@@ -370,15 +363,24 @@ export const usePlanningStore = create<PlanningStore>()(
             story.id === storyId || story.isAnchor ? now : story.updatedAt,
         }))
 
+        // Adjust all story positions relative to the new anchor
+        const adjustedStories = adjustStoriesRelativeToNewAnchor(
+          updatedStories,
+          storyId,
+          ANCHOR_POSITION
+        )
+
         const updatedSession: PlanningSession = {
           ...currentSession,
-          stories: updatedStories,
+          stories: adjustedStories,
           anchorStoryId: storyId,
           lastModified: now,
         }
 
-        set({ currentSession: updatedSession })
-        saveSession(updatedSession)
+        set({
+          currentSession: updatedSession,
+          sessions: { [updatedSession.id]: updatedSession },
+        })
       },
 
       togglePointAssignmentMode: () => {
@@ -393,8 +395,10 @@ export const usePlanningStore = create<PlanningStore>()(
           lastModified: new Date(),
         }
 
-        set({ currentSession: updatedSession })
-        saveSession(updatedSession)
+        set({
+          currentSession: updatedSession,
+          sessions: { ...get().sessions, [updatedSession.id]: updatedSession },
+        })
       },
 
       updatePointCutoffs: (cutoffs: PointCutoff[]) => {
@@ -409,8 +413,10 @@ export const usePlanningStore = create<PlanningStore>()(
           lastModified: new Date(),
         }
 
-        set({ currentSession: updatedSession })
-        saveSession(updatedSession)
+        set({
+          currentSession: updatedSession,
+          sessions: { ...get().sessions, [updatedSession.id]: updatedSession },
+        })
       },
 
       exportResults: (): ExportData => {
@@ -469,7 +475,10 @@ export const usePlanningStore = create<PlanningStore>()(
     {
       name: 'planning-store',
       storage: createJSONStorage(() => localStorage),
-      partialize: state => ({ currentSession: state.currentSession }),
+      partialize: state => ({
+        currentSession: state.currentSession,
+        sessions: state.sessions,
+      }),
     }
   )
 )

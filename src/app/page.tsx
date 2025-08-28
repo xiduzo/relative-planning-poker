@@ -1,81 +1,47 @@
 'use client'
 
-import React, { useEffect } from 'react'
-import { PlanningCanvas } from '@/components/PlanningCanvas'
+import React from 'react'
 import { StoryDialog } from '@/components/StoryDialog'
-import { usePlanningStore } from '@/stores/planning-store'
-import { useDialogStore } from '@/stores/dialog-store'
-import type { Story } from '@/types'
-import { DndProvider } from '@/components/DndProvider'
-import { defineStepper } from '@/components/stepper'
-import { AnchorIcon, GridIcon, MoveIcon, Tally5Icon } from 'lucide-react'
-
-const { Stepper } = defineStepper(
-  {
-    id: 'step-1',
-    title: 'Anchor',
-    icon: <AnchorIcon />,
-  },
-  {
-    id: 'step-2',
-    title: 'Plan',
-    icon: <MoveIcon />,
-  },
-  {
-    id: 'step-3',
-    title: 'Estimate',
-    icon: <Tally5Icon />,
-  }
-)
+import { Stepper } from '@/components/steps/main-stepper'
+import { Session, SessionActions } from '@/components/steps/session'
+import { Estimate, EstimateActions } from '@/components/steps/estimate'
+import { Plan, PlanActions } from '@/components/steps/plan'
+import { InitialiseStepper } from '@/components/steps/initialise-stepper'
 
 export default function Home() {
-  const { currentSession, createSession } = usePlanningStore()
-  const { openEditStoryDialog } = useDialogStore()
-
-  useEffect(() => {
-    // Create a demo session if none exists
-    if (!currentSession) {
-      createSession('Demo Planning Session')
-    }
-  }, [currentSession, createSession])
-
-  if (!currentSession) {
-    // TODO: able to create a new session
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
-          <p className="text-muted-foreground">
-            Setting up your planning session
-          </p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <>
-      <section>
-        <Stepper.Provider>
-          {({ methods }) => (
-            <Stepper.Navigation className="mb-12">
+      <Stepper.Provider className="flex flex-col gap-10 flex-1 container mx-auto py-4">
+        {({ methods }) => (
+          <>
+            <Stepper.Navigation>
+              <InitialiseStepper />
               {methods.all.map(step => (
-                <Stepper.Step
-                  of={step.id}
-                  onClick={() => methods.goTo(step.id)}
-                  icon={step.icon}
-                >
+                <Stepper.Step key={step.id} of={step.id} icon={step.icon}>
                   <Stepper.Title>{step.title}</Stepper.Title>
+                  <Stepper.Description>{step.description}</Stepper.Description>
                 </Stepper.Step>
               ))}
             </Stepper.Navigation>
-          )}
-        </Stepper.Provider>
-      </section>
-      <DndProvider>
-        <PlanningCanvas onStoryDoubleClick={openEditStoryDialog} />
-      </DndProvider>
-      <section>ACTION MENU</section>
+            <Stepper.Panel className="flex-1 flex flex-col">
+              {methods.switch({
+                'step-1': Session,
+                'step-2': Plan,
+                'step-3': Estimate,
+              })}
+            </Stepper.Panel>
+            <Stepper.Controls className="flex items-center justify-center">
+              <section className="bg-card shadow-md rounded-lg p-2">
+                {methods.switch({
+                  'step-1': SessionActions,
+                  'step-2': PlanActions,
+                  'step-3': EstimateActions,
+                })}
+              </section>
+            </Stepper.Controls>
+          </>
+        )}
+      </Stepper.Provider>
       <StoryDialog />
     </>
   )

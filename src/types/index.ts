@@ -12,6 +12,7 @@ export const STORY_TITLE_MAX_LENGTH = 100
 export const STORY_DESCRIPTION_MAX_LENGTH = 500
 export const SESSION_NAME_MAX_LENGTH = 50
 export const FIBONACCI_NUMBERS = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89] as const
+export const SESSION_CODE_LENGTH = 6
 
 // 2D Position type for complexity and uncertainty
 export const Position2DSchema = z.object({
@@ -42,6 +43,7 @@ export const StorySchema = z.object({
   id: z.string().min(1, 'Story ID is required'),
   title: z
     .string()
+    .trim()
     .min(1, 'Story title is required')
     .max(
       STORY_TITLE_MAX_LENGTH,
@@ -49,6 +51,7 @@ export const StorySchema = z.object({
     ),
   description: z
     .string()
+    .trim()
     .max(
       STORY_DESCRIPTION_MAX_LENGTH,
       `Story description must be ${STORY_DESCRIPTION_MAX_LENGTH} characters or less`
@@ -75,9 +78,9 @@ export const PointCutoffSchema = z.object({
 })
 
 export const ParticipantSchema = z.object({
-  id: z.string().min(1, 'Participant ID is required'),
-  name: z.string().min(1, 'Participant name is required'),
-  color: z.string().min(1, 'Participant color is required'),
+  id: z.string().trim().min(1, 'Participant ID is required'),
+  name: z.string().trim().min(1, 'Participant name is required'),
+  color: z.string().trim().min(1, 'Participant color is required'),
   isActive: z.boolean().default(true),
   cursor: z
     .object({
@@ -89,14 +92,20 @@ export const ParticipantSchema = z.object({
 
 export const PlanningSessionSchema = z
   .object({
-    id: z.string().min(1, 'Session ID is required'),
+    id: z.string().trim().min(1, 'Session ID is required'),
     name: z
       .string()
+      .trim()
       .min(1, 'Session name is required')
       .max(
         SESSION_NAME_MAX_LENGTH,
         `Session name must be ${SESSION_NAME_MAX_LENGTH} characters or less`
       ),
+    code: z
+      .string()
+      .trim()
+      .min(SESSION_CODE_LENGTH, 'Session code must be 6 characters long')
+      .max(SESSION_CODE_LENGTH, 'Session code must be 6 characters long'),
     stories: z.array(StorySchema).default([]),
     anchorStoryId: z.string().nullable().default(null),
     pointCutoffs: z.array(PointCutoffSchema).default([]),
@@ -139,6 +148,7 @@ export const ExportDataSchema = z.object({
 export const CreateStoryInputSchema = z.object({
   title: z
     .string()
+    .trim()
     .min(1, 'Story title is required')
     .max(
       STORY_TITLE_MAX_LENGTH,
@@ -146,6 +156,7 @@ export const CreateStoryInputSchema = z.object({
     ),
   description: z
     .string()
+    .trim()
     .max(
       STORY_DESCRIPTION_MAX_LENGTH,
       `Story description must be ${STORY_DESCRIPTION_MAX_LENGTH} characters or less`
@@ -156,6 +167,7 @@ export const UpdateStoryInputSchema = z.object({
   id: z.string().min(1, 'Story ID is required for updates'),
   title: z
     .string()
+    .trim()
     .min(1, 'Story title is required')
     .max(
       STORY_TITLE_MAX_LENGTH,
@@ -164,6 +176,7 @@ export const UpdateStoryInputSchema = z.object({
     .optional(),
   description: z
     .string()
+    .trim()
     .max(
       STORY_DESCRIPTION_MAX_LENGTH,
       `Story description must be ${STORY_DESCRIPTION_MAX_LENGTH} characters or less`

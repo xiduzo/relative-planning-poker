@@ -182,18 +182,13 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
             <div className="text-center space-y-4">
               <div className="space-y-2">
                 <p className="text-muted-foreground font-medium">
-                  No stories to display
+                  Much empty...
                 </p>
                 <p className="text-sm text-muted-foreground/70">
-                  Add your first story to act as a reference point to start
-                  planning
+                  Add an anchor story to get started
                 </p>
               </div>
-              <Button
-                onClick={openAddStoryDialog}
-                size="lg"
-                className="shadow-lg hover:shadow-xl transition-shadow"
-              >
+              <Button onClick={openAddStoryDialog} size="lg">
                 <AnchorIcon className="h-5 w-5" />
                 Add an anchor Story
               </Button>
@@ -235,14 +230,6 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
             </span>
           </div>
         </div>
-      </section>
-
-      {/* Actions */}
-      <section className="col-span-2 row-span-1 relative flex items-center mt-2">
-        <Button variant="outline" onClick={openAddStoryDialog}>
-          <Plus className="h-5 w-5" />
-          Add a new Story
-        </Button>
       </section>
     </div>
   )

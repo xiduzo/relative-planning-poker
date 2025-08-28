@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { usePlanningStore } from '../planning-store'
-import { normalizePosition } from '@/utils/position'
+
 import { validateStory } from '@/utils/validation'
 import { generateId } from '@/utils/id'
 
@@ -31,7 +31,7 @@ describe('PlanningStore Integration', () => {
     const store = usePlanningStore.getState()
 
     // Create session and add story
-    store.createSession('Integration Test')
+    store.createSession('Integration Test', 'INT001')
     store.addStory({ title: 'Test Story', description: 'Test description' })
 
     // Test position normalization integration
@@ -76,7 +76,7 @@ describe('PlanningStore Integration', () => {
     const store = usePlanningStore.getState()
 
     // Create session and add story
-    store.createSession('Integration Test')
+    store.createSession('Integration Test', 'INT002')
     store.addStory({ title: 'Test Story', description: 'Test description' })
 
     const { currentSession } = usePlanningStore.getState()
@@ -89,8 +89,6 @@ describe('PlanningStore Integration', () => {
   })
 
   it('should integrate with ID generation utilities', () => {
-    const store = usePlanningStore.getState()
-
     // Test that generated IDs are unique
     const id1 = generateId()
     const id2 = generateId()
@@ -106,7 +104,7 @@ describe('PlanningStore Integration', () => {
     const store = usePlanningStore.getState()
 
     // Create session with stories
-    store.createSession('Persistence Test')
+    store.createSession('Persistence Test', 'PERS01')
     store.addStory({ title: 'Story 1', description: 'Description 1' })
     store.addStory({ title: 'Story 2', description: 'Description 2' })
     store.updateStoryPosition(
@@ -155,7 +153,7 @@ describe('PlanningStore Integration', () => {
     const store = usePlanningStore.getState()
 
     // Create session
-    store.createSession('Complex Workflow Test')
+    store.createSession('Complex Workflow Test', 'COMP01')
 
     // Add multiple stories
     store.addStory({ title: 'Story A', description: 'First story' })
@@ -167,8 +165,8 @@ describe('PlanningStore Integration', () => {
 
     // Position stories
     const storyIds = currentSession!.stories.map(s => s.id)
-    store.updateStoryPosition(storyIds[1], -30) // Story B to left
-    store.updateStoryPosition(storyIds[2], 40) // Story C to right
+    store.updateStoryPosition(storyIds[1], { x: -30, y: 0 }) // Story B to left
+    store.updateStoryPosition(storyIds[2], { x: 40, y: 0 }) // Story C to right
 
     // Update story content
     store.updateStory(storyIds[0], { title: 'Updated Story A' })
@@ -187,6 +185,17 @@ describe('PlanningStore Integration', () => {
       currentSession.stories.find(s => s.id === storyIds[0])?.isAnchor
     ).toBe(false)
     expect(currentSession.anchorStoryId).toBe(storyIds[1])
+
+    // Verify relative positioning: new anchor should be at (0,0) and other stories
+    // should maintain their relative positions to the new anchor
+    const newAnchor = currentSession.stories.find(s => s.id === storyIds[1])
+    const oldAnchor = currentSession.stories.find(s => s.id === storyIds[0])
+    const storyC = currentSession.stories.find(s => s.id === storyIds[2])
+
+    expect(newAnchor?.position).toEqual({ x: 0, y: 0 })
+    // Old anchor should maintain relative position from new anchor
+    expect(oldAnchor?.position.x).toBe(30)
+    expect(storyC?.position.x).toBe(70)
 
     // Delete a story
     store.deleteStory(storyIds[2])

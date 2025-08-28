@@ -44,11 +44,12 @@ describe(usePlanningStore.name, () => {
     it('should create a new session with valid data', () => {
       const store = usePlanningStore.getState()
 
-      store.createSession('Test Session')
+      store.createSession('Test Session', 'ABC123')
 
       const { currentSession } = usePlanningStore.getState()
       expect(currentSession).toBeDefined()
       expect(currentSession?.name).toBe('Test Session')
+      expect(currentSession?.code).toBe('ABC123')
       expect(currentSession?.id).toBe('test-uuid-123')
       expect(currentSession?.stories).toEqual([])
       expect(currentSession?.anchorStoryId).toBeNull()
@@ -59,16 +60,17 @@ describe(usePlanningStore.name, () => {
     it('should trim session name', () => {
       const store = usePlanningStore.getState()
 
-      store.createSession('  Test Session  ')
+      store.createSession('  Test Session  ', 'DEF456')
 
       const { currentSession } = usePlanningStore.getState()
       expect(currentSession?.name).toBe('Test Session')
+      expect(currentSession?.code).toBe('DEF456')
     })
 
     it('should throw error for invalid session data', () => {
       const store = usePlanningStore.getState()
 
-      expect(() => store.createSession('')).toThrow()
+      expect(() => store.createSession('', 'GHI789')).toThrow()
     })
   })
 
@@ -339,8 +341,10 @@ describe(usePlanningStore.name, () => {
       usePlanningStore.setState({ currentSession: testSession })
 
       const store = usePlanningStore.getState()
-      
-      expect(() => store.deleteStory('anchor-1')).toThrow('Cannot delete anchor story when other stories exist')
+
+      expect(() => store.deleteStory('anchor-1')).toThrow(
+        'Cannot delete anchor story when other stories exist'
+      )
     })
 
     it('should clear anchor when deleting last story', () => {
@@ -402,6 +406,96 @@ describe(usePlanningStore.name, () => {
         'Story not found'
       )
     })
+
+    it('should adjust story positions relative to new anchor', () => {
+      // Create stories with specific positions
+      const story1 = createTestStory({
+        id: 'story-1',
+        isAnchor: true,
+        position: { x: 10, y: 20 },
+      })
+      const story2 = createTestStory({
+        id: 'story-2',
+        isAnchor: false,
+        position: { x: 30, y: 40 },
+      })
+      const story3 = createTestStory({
+        id: 'story-3',
+        isAnchor: false,
+        position: { x: 50, y: 60 },
+      })
+
+      const testSession = createTestSession({
+        stories: [story1, story2, story3],
+        anchorStoryId: 'story-1',
+      })
+      usePlanningStore.setState({ currentSession: testSession })
+
+      const store = usePlanningStore.getState()
+
+      // Set story-2 as the new anchor
+      store.setAnchorStory('story-2')
+
+      const { currentSession } = usePlanningStore.getState()
+
+      // New anchor should be at (0,0)
+      const newAnchor = currentSession?.stories.find(s => s.id === 'story-2')
+      expect(newAnchor?.position).toEqual({ x: 0, y: 0 })
+      expect(newAnchor?.isAnchor).toBe(true)
+
+      // Old anchor should maintain relative position: (10-30, 20-40) = (-20, -20)
+      const oldAnchor = currentSession?.stories.find(s => s.id === 'story-1')
+      expect(oldAnchor?.position).toEqual({ x: -20, y: -20 })
+      expect(oldAnchor?.isAnchor).toBe(false)
+
+      // Story 3 should maintain relative position: (50-30, 60-40) = (20, 20)
+      const foundStory3 = currentSession?.stories.find(s => s.id === 'story-3')
+      expect(foundStory3?.position).toEqual({ x: 20, y: 20 })
+      expect(foundStory3?.isAnchor).toBe(false)
+
+      // Anchor story ID should be updated
+      expect(currentSession?.anchorStoryId).toBe('story-2')
+    })
+
+    it('should handle setting anchor when no previous anchor exists', () => {
+      // Create stories without an anchor
+      const story1 = createTestStory({
+        id: 'story-1',
+        isAnchor: false,
+        position: { x: 10, y: 20 },
+      })
+      const story2 = createTestStory({
+        id: 'story-2',
+        isAnchor: false,
+        position: { x: 30, y: 40 },
+      })
+
+      const testSession = createTestSession({
+        stories: [story1, story2],
+        anchorStoryId: null,
+      })
+      usePlanningStore.setState({ currentSession: testSession })
+
+      const store = usePlanningStore.getState()
+
+      // Set story-1 as the new anchor
+      store.setAnchorStory('story-1')
+
+      const { currentSession } = usePlanningStore.getState()
+
+      // New anchor should be at (0,0)
+      const newAnchor = currentSession?.stories.find(s => s.id === 'story-1')
+      expect(newAnchor?.position).toEqual({ x: 0, y: 0 })
+      expect(newAnchor?.isAnchor).toBe(true)
+
+      // Other stories should keep their original positions
+      const foundStory2 = currentSession?.stories.find(s => s.id === 'story-2')
+      expect(foundStory2?.position).toEqual({ x: 20, y: 20 })
+      expect(foundStory2?.isAnchor).toBe(false)
+
+      // Anchor story ID should be updated
+      expect(currentSession?.anchorStoryId).toBe('story-1')
+    })
   })
 
   describe('togglePointAssignmentMode', () => {
@@ -433,9 +527,21 @@ describe(usePlanningStore.name, () => {
 
     it('should update point cutoffs', () => {
       const cutoffs: PointCutoff[] = [
-        createTestPointCutoff({ id: 'cutoff-1', position: -50, pointValue: 1 }),
-        createTestPointCutoff({ id: 'cutoff-2', position: 0, pointValue: 3 }),
-        createTestPointCutoff({ id: 'cutoff-3', position: 50, pointValue: 8 }),
+        createTestPointCutoff({
+          id: 'cutoff-1',
+          position: { x: -50, y: 0 },
+          pointValue: 1,
+        }),
+        createTestPointCutoff({
+          id: 'cutoff-2',
+          position: { x: 0, y: 0 },
+          pointValue: 3,
+        }),
+        createTestPointCutoff({
+          id: 'cutoff-3',
+          position: { x: 50, y: 0 },
+          pointValue: 8,
+        }),
       ]
 
       const store = usePlanningStore.getState()
@@ -452,10 +558,26 @@ describe(usePlanningStore.name, () => {
   describe('exportResults', () => {
     it('should export session results with story points', () => {
       const stories = [
-        createTestStory({ id: 'story-1', title: 'Story 1', position: { x: -60, y: 0 } }),
-        createTestStory({ id: 'story-2', title: 'Story 2', position: { x: -10, y: 0 } }),
-        createTestStory({ id: 'story-3', title: 'Story 3', position: { x: 30, y: 0 } }),
-        createTestStory({ id: 'story-4', title: 'Story 4', position: { x: 70, y: 0 } }),
+        createTestStory({
+          id: 'story-1',
+          title: 'Story 1',
+          position: { x: -60, y: 0 },
+        }),
+        createTestStory({
+          id: 'story-2',
+          title: 'Story 2',
+          position: { x: -10, y: 0 },
+        }),
+        createTestStory({
+          id: 'story-3',
+          title: 'Story 3',
+          position: { x: 30, y: 0 },
+        }),
+        createTestStory({
+          id: 'story-4',
+          title: 'Story 4',
+          position: { x: 70, y: 0 },
+        }),
       ]
 
       const cutoffs: PointCutoff[] = [

@@ -30,6 +30,7 @@ export function createTestSession(
   return fromPartial<PlanningSession>({
     id: 'test-session-1',
     name: 'Test Session',
+    code: 'TEST12',
     stories: [],
     anchorStoryId: null,
     pointCutoffs: [],
