@@ -7,13 +7,12 @@ import { Session, SessionActions } from './session'
 import { Estimate, EstimateActions } from './estimate'
 import { Plan, PlanActions } from './plan'
 import { useParams } from 'next/navigation'
-import { useEffect } from 'react'
 
 const { Stepper, useStepper, steps, utils } = defineStepper(
   {
     id: 'step-1',
     title: 'Session',
-    description: 'Join or create a session',
+    description: 'Connect',
     icon: <RectangleEllipsisIcon />,
   },
   {
