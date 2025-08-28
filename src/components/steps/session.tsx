@@ -40,6 +40,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card'
+import { useRouter } from 'next/navigation'
 
 const joinSessionSchema = PlanningSessionSchema.pick({
   code: true,
@@ -47,9 +48,8 @@ const joinSessionSchema = PlanningSessionSchema.pick({
 type JoinSessionForm = z.infer<typeof joinSessionSchema>
 
 export function Session() {
-  const { loadSessionByCode, currentSession, sessions } = usePlanningStore()
-
-  // Form for creating new session
+  const { loadSessionByCode, sessions } = usePlanningStore()
+  const router = useRouter()
   const form = useForm<JoinSessionForm>({
     resolver: zodResolver(joinSessionSchema),
     defaultValues: {
@@ -57,7 +57,17 @@ export function Session() {
     },
   })
 
-  const handleJoinSession = () => {}
+  const handleJoinSession = (data: JoinSessionForm) => {
+    try {
+      loadSessionByCode(data.code)
+      // navigate to session route
+      router.push(`/session/${data.code}`)
+    } catch (error) {
+      toast.error('Failed to join session', {
+        description: getErrorMessage(error),
+      })
+    }
+  }
 
   return (
     <div className="flex flex-col items-center space-y-8 p-6">
@@ -126,7 +136,6 @@ export function Session() {
             <fieldset>
               <Button
                 disabled={!form.formState.isValid}
-                onClick={handleJoinSession}
                 className="w-full"
                 size="lg"
               >
@@ -170,7 +179,7 @@ export function Session() {
                     variant="outline"
                     size="sm"
                     className="w-full"
-                    onClick={() => loadSessionByCode(session.code)}
+                    onClick={() => handleJoinSession({ code: session.code })}
                   >
                     Go to session
                   </Button>

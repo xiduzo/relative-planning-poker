@@ -67,8 +67,9 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
     try {
       setAnchorStory(story.id)
     } catch (error) {
-      console.error('Failed to set anchor story:', error)
-      // You could add toast notification here
+      toast.error('Failed to set anchor story', {
+        description: getErrorMessage(error),
+      })
     }
   }
 
@@ -78,7 +79,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   return (
     <div
       className={cn(
-        'grid grid-cols-[1fr_4rem] grid-rows-[2rem_1fr] gap-0 flex-1 min-h-0',
+        'grid grid-cols-[1fr_2.5rem] grid-rows-[2rem_1fr] gap-0 flex-1 min-h-0',
         className
       )}
     >

@@ -28,7 +28,7 @@ export interface PlanningStore {
 
   // Session actions
   createSession: (name: string, code: string) => void
-  loadSessionByCode: (code: string) => boolean
+  loadSessionByCode: (code: string) => void
   clearSession: () => void
 
   // Story management actions
@@ -54,19 +54,6 @@ export interface PlanningStore {
   exportResults: () => ExportData
 }
 
-const STORAGE_KEY = 'relative-planning-poker-sessions'
-
-// Helper function to get all sessions from localStorage
-const getAllSessions = (): Record<string, PlanningSession> => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) : {}
-  } catch (error) {
-    console.error('Failed to load sessions from localStorage:', error)
-    return {}
-  }
-}
-
 export const usePlanningStore = create<PlanningStore>()(
   persist(
     (set, get) => ({
@@ -90,8 +77,7 @@ export const usePlanningStore = create<PlanningStore>()(
         // Validate the session
         const validationResult = PlanningSessionSchema.safeParse(session)
         if (!validationResult.success) {
-          console.error('Invalid session data:', validationResult.error)
-          throw new Error('Failed to create session: Invalid data')
+          throw validationResult.error
         }
 
         set({
@@ -101,45 +87,30 @@ export const usePlanningStore = create<PlanningStore>()(
       },
 
       loadSessionByCode: (code: string) => {
-        try {
-          const sessions = getAllSessions()
-          const session = Object.values(sessions).find(
-            session => session.code === code
-          )
+        const sessions = get().sessions
+        const session = Object.values(sessions).find(
+          session => session.code === code
+        )
 
-          if (!session) {
-            return false
-          }
+        if (!session) throw new Error('Session not found')
 
-          // Parse dates from stored JSON
-          const parsedSession: PlanningSession = {
-            ...session,
-            createdAt: new Date(session.createdAt),
-            lastModified: new Date(session.lastModified),
-            stories: session.stories.map(story => ({
-              ...story,
-              createdAt: new Date(story.createdAt),
-              updatedAt: new Date(story.updatedAt),
-            })),
-          }
-
-          // Validate the loaded session
-          const validationResult =
-            PlanningSessionSchema.safeParse(parsedSession)
-          if (!validationResult.success) {
-            console.error(
-              'Invalid session data loaded:',
-              validationResult.error
-            )
-            return false
-          }
-
-          set({ currentSession: parsedSession })
-          return true
-        } catch (error) {
-          console.error('Failed to load session by code:', error)
-          return false
+        // Parse dates from stored JSON
+        const parsedSession: PlanningSession = {
+          ...session,
+          createdAt: new Date(session.createdAt),
+          lastModified: new Date(session.lastModified),
+          stories: session.stories.map(story => ({
+            ...story,
+            createdAt: new Date(story.createdAt),
+            updatedAt: new Date(story.updatedAt),
+          })),
         }
+
+        // Validate the loaded session
+        const validationResult = PlanningSessionSchema.safeParse(parsedSession)
+        if (!validationResult.success) throw validationResult.error
+
+        set({ currentSession: parsedSession })
       },
 
       clearSession: () => {
@@ -148,17 +119,11 @@ export const usePlanningStore = create<PlanningStore>()(
 
       addStory: (input: CreateStoryInput) => {
         const { currentSession } = get()
-        if (!currentSession) {
-          throw new Error('No active session')
-        }
+        if (!currentSession) throw new Error('No active session')
 
         // Validate input
         const validationResult = CreateStoryInputSchema.safeParse(input)
-        if (!validationResult.success) {
-          throw new Error(
-            `Invalid story data: ${validationResult.error.message}`
-          )
-        }
+        if (!validationResult.success) throw validationResult.error
 
         const now = new Date()
         const isFirstStory = currentSession.stories.length === 0
@@ -175,9 +140,7 @@ export const usePlanningStore = create<PlanningStore>()(
 
         // Validate the new story
         const storyValidation = StorySchema.safeParse(newStory)
-        if (!storyValidation.success) {
-          throw new Error(`Invalid story: ${storyValidation.error.message}`)
-        }
+        if (!storyValidation.success) throw storyValidation.error
 
         const updatedSession: PlanningSession = {
           ...currentSession,
@@ -199,16 +162,12 @@ export const usePlanningStore = create<PlanningStore>()(
         updates: Partial<Pick<Story, 'title' | 'description'>>
       ) => {
         const { currentSession } = get()
-        if (!currentSession) {
-          throw new Error('No active session')
-        }
+        if (!currentSession) throw new Error('No active session')
 
         const storyIndex = currentSession.stories.findIndex(
           s => s.id === storyId
         )
-        if (storyIndex === -1) {
-          throw new Error('Story not found')
-        }
+        if (storyIndex === -1) throw new Error('Story not found')
 
         const now = new Date()
         const updatedStories = [...currentSession.stories]
@@ -226,11 +185,7 @@ export const usePlanningStore = create<PlanningStore>()(
         const storyValidation = StorySchema.safeParse(
           updatedStories[storyIndex]
         )
-        if (!storyValidation.success) {
-          throw new Error(
-            `Invalid story update: ${storyValidation.error.message}`
-          )
-        }
+        if (!storyValidation.success) throw storyValidation.error
 
         const updatedSession: PlanningSession = {
           ...currentSession,
@@ -249,22 +204,16 @@ export const usePlanningStore = create<PlanningStore>()(
         position: { x: number; y: number }
       ) => {
         const { currentSession } = get()
-        if (!currentSession) {
-          throw new Error('No active session')
-        }
+        if (!currentSession) throw new Error('No active session')
 
         const storyIndex = currentSession.stories.findIndex(
           s => s.id === storyId
         )
-        if (storyIndex === -1) {
-          throw new Error('Story not found')
-        }
+        if (storyIndex === -1) throw new Error('Story not found')
 
         // Check if this is the anchor story - anchor stories cannot be moved
         const story = currentSession.stories[storyIndex]
-        if (story.isAnchor) {
-          throw new Error('Anchor story cannot be moved')
-        }
+        if (story.isAnchor) throw new Error('Anchor story cannot be moved')
 
         // Normalize position to valid range
         const normalizedPosition = normalizePosition2D(position)
@@ -291,14 +240,10 @@ export const usePlanningStore = create<PlanningStore>()(
 
       deleteStory: (storyId: string) => {
         const { currentSession } = get()
-        if (!currentSession) {
-          throw new Error('No active session')
-        }
+        if (!currentSession) throw new Error('No active session')
 
         const storyToDelete = currentSession.stories.find(s => s.id === storyId)
-        if (!storyToDelete) {
-          throw new Error('Story not found')
-        }
+        if (!storyToDelete) throw new Error('Story not found')
 
         // Prevent anchor story deletion when other stories exist
         if (storyToDelete.isAnchor && currentSession.stories.length > 1) {
@@ -346,9 +291,7 @@ export const usePlanningStore = create<PlanningStore>()(
 
       setAnchorStory: (storyId: string) => {
         const { currentSession } = get()
-        if (!currentSession) {
-          throw new Error('No active session')
-        }
+        if (!currentSession) throw new Error('No active session')
 
         const targetStory = currentSession.stories.find(s => s.id === storyId)
         if (!targetStory) {

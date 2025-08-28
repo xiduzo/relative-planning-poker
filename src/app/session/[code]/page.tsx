@@ -1,6 +1,5 @@
-import React from 'react'
 import { MainStepper } from '@/components/steps/main-stepper'
 
-export default function Home() {
+export default function SessionPage() {
   return <MainStepper />
 }
