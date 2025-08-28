@@ -10,7 +10,7 @@ import { StoryCard } from './StoryCard'
 import { usePlanningStore } from '@/stores/planning-store'
 import { useDialogStore } from '@/stores/dialog-store'
 import { cn } from '@/lib/utils'
-import { positionToPercentage } from '@/utils/position'
+import { normalizePosition2D, positionToPercentage } from '@/utils/position'
 import { Button } from './ui/button'
 import { AnchorIcon, Plus } from 'lucide-react'
 import type { Story } from '@/types'
@@ -28,6 +28,9 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   onStoryDoubleClick,
 }) => {
   const currentSession = usePlanningStore(state => state.currentSession)
+  const updateStoryPosition = usePlanningStore(
+    state => state.updateStoryPosition
+  )
 
   // Set up droppable area for the entire canvas
   const { setNodeRef, isOver } = useDroppable({
@@ -70,6 +73,47 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
       toast.error('Failed to set anchor story', {
         description: getErrorMessage(error),
       })
+    }
+  }
+
+  function adjustPosition(event: KeyboardEvent, story: Story) {
+    if (story.isAnchor) return
+
+    const POSITION_CHANGE = event.shiftKey ? 10 : 2
+
+    let newX = story.position.x
+    let newY = story.position.y
+
+    switch (event.key) {
+      case 'ArrowRight':
+        newX += POSITION_CHANGE
+        break
+      case 'ArrowLeft':
+        newX -= POSITION_CHANGE
+        break
+      case 'ArrowDown':
+        newY += POSITION_CHANGE
+        break
+      case 'ArrowUp':
+        newY -= POSITION_CHANGE
+        break
+    }
+
+    const newPosition = normalizePosition2D({ x: newX, y: newY })
+    updateStoryPosition(story.id, newPosition)
+  }
+
+  function handleStoryKey(event: KeyboardEvent, story: Story) {
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowLeft':
+      case 'ArrowUp':
+      case 'ArrowDown':
+        adjustPosition(event, story)
+        break
+      case 'Backspace':
+        handleDeleteStory(story)
+        break
     }
   }
 
@@ -168,6 +212,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
             >
               <StoryCard
                 story={story}
+                onHotkey={handleStoryKey}
                 onDoubleClick={() => onStoryDoubleClick?.(story)}
                 onEdit={() => handleEditStory(story)}
                 onDelete={() => handleDeleteStory(story)}

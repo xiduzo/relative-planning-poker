@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 import { calculatePositionScore } from '@/utils/position'
 import type { Story } from '@/types'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
+import { useHotkeys } from 'react-hotkeys-hook'
 
 const scoreFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
@@ -40,6 +41,7 @@ export interface StoryCardProps {
   onEdit?: () => void
   onDelete?: () => void
   onMakeAnchor?: () => void
+  onHotkey?: (event: KeyboardEvent, story: Story) => void
   isDragging?: boolean
   enableDrag?: boolean
 }
@@ -52,6 +54,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   onEdit,
   onDelete,
   onMakeAnchor,
+  onHotkey,
   isDragging = false,
   enableDrag = true,
 }) => {
@@ -60,9 +63,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
 
   const draggableProps = useDraggable({
     id: story.id,
-    data: {
-      story,
-    },
+    data: { story },
     disabled: !canDrag,
   })
 
@@ -82,7 +83,34 @@ export const StoryCard: React.FC<StoryCardProps> = ({
         isDragging: false,
       }
 
+  const hotkeyRef = useHotkeys<HTMLDivElement>(
+    ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Backspace'],
+    event => onHotkey?.(event, story),
+    {
+      enabled: enableDrag,
+      ignoreModifiers: true,
+      preventDefault: false,
+      enableOnFormTags: false,
+    }
+  )
+
   const isCurrentlyDragging = isDragging || isDraggingFromHook
+
+  // Create a ref callback that handles both drag and hotkey refs
+  const combinedRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      // Set the hotkey ref
+      if (hotkeyRef && 'current' in hotkeyRef) {
+        hotkeyRef.current = node
+      }
+
+      // Set the drag ref when dragging is enabled
+      if (enableDrag) {
+        setNodeRef(node)
+      }
+    },
+    [hotkeyRef, setNodeRef, enableDrag]
+  )
 
   const style = transform
     ? {
@@ -97,11 +125,11 @@ export const StoryCard: React.FC<StoryCardProps> = ({
 
   const cardContent = (
     <Card
-      ref={enableDrag ? setNodeRef : undefined}
+      ref={combinedRef}
       style={style}
       role={enableDrag ? 'button' : 'article'}
       aria-label={`Story: ${story.title}${story.isAnchor ? ' (Anchor Story)' : ''}`}
-      tabIndex={enableDrag ? 0 : onClick ? 0 : undefined}
+      tabIndex={enableDrag || onHotkey ? 0 : onClick ? 0 : undefined}
       data-story-id={story.id}
       className={cn(
         // Base styles

@@ -40,79 +40,6 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   const updateStoryPosition = usePlanningStore(
     state => state.updateStoryPosition
   )
-  const deleteStory = usePlanningStore(state => state.deleteStory)
-  const currentSession = usePlanningStore(state => state.currentSession)
-
-  function adjustPosition(event: KeyboardEvent, story: Story) {
-    if (story.isAnchor) return
-
-    const POSITION_CHANGE = event.shiftKey ? 10 : 2
-
-    let newX = story.position.x
-    let newY = story.position.y
-
-    switch (event.key) {
-      case 'ArrowRight':
-        newX += POSITION_CHANGE
-        break
-      case 'ArrowLeft':
-        newX -= POSITION_CHANGE
-        break
-      case 'ArrowDown':
-        newY += POSITION_CHANGE
-        break
-      case 'ArrowUp':
-        newY -= POSITION_CHANGE
-        break
-    }
-
-    const newPosition = normalizePosition2D({ x: newX, y: newY })
-    updateStoryPosition(story.id, newPosition)
-  }
-
-  // Handle keyboard navigation for focused story cards
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const isActionKey = [
-        'ArrowLeft',
-        'ArrowRight',
-        'ArrowUp',
-        'ArrowDown',
-        'Backspace',
-      ].includes(event.key)
-      if (!isActionKey) return
-
-      const focusedElement = document.activeElement
-      if (!focusedElement?.hasAttribute('data-story-id')) return
-
-      event.preventDefault()
-
-      // Get the story ID from the focused element
-      const storyId = focusedElement.getAttribute('data-story-id')
-      if (!storyId || !currentSession?.stories) return
-
-      const story = currentSession.stories.find(s => s.id === storyId)
-      if (!story) return
-
-      switch (event.key) {
-        case 'ArrowRight':
-        case 'ArrowLeft':
-        case 'ArrowDown':
-        case 'ArrowUp':
-          adjustPosition(event, story)
-          break
-        case 'Backspace':
-          deleteStory(storyId)
-          break
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [currentSession, updateStoryPosition, deleteStory])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -217,7 +144,6 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
       onDragCancel={handleDragCancel}
     >
       {children}
-
       <DragOverlay>
         {activeStory && (
           <div
