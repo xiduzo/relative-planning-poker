@@ -4,12 +4,8 @@
 
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { usePlanningStore } from '../planning-store'
-import {
-  createTestStory,
-  createTestSession,
-  createTestPointCutoff,
-} from '@/test/utils'
-import type { CreateStoryInput, PointCutoff } from '@/types'
+import { createTestStory, createTestSession } from '@/test/utils'
+import type { CreateStoryInput } from '@/types'
 
 // Mock localStorage
 const localStorageMock = {
@@ -53,8 +49,6 @@ describe(usePlanningStore.name, () => {
       expect(currentSession?.id).toBe('test-uuid-123')
       expect(currentSession?.stories).toEqual([])
       expect(currentSession?.anchorStoryId).toBeNull()
-      expect(currentSession?.isPointAssignmentMode).toBe(false)
-      expect(localStorageMock.setItem).toHaveBeenCalled()
     })
 
     it('should trim session name', () => {
@@ -75,17 +69,16 @@ describe(usePlanningStore.name, () => {
   })
 
   describe('loadSession', () => {
-    it('should load existing session from localStorage', () => {
+    it('should load existing session from memory', () => {
       const testSession = createTestSession({
         id: 'session-123',
         name: 'Loaded Session',
       })
 
-      localStorageMock.getItem.mockReturnValue(
-        JSON.stringify({
-          'session-123': testSession,
-        })
-      )
+      // Add session to store's sessions object
+      usePlanningStore.setState({
+        sessions: { 'session-123': testSession },
+      })
 
       const store = usePlanningStore.getState()
       const result = store.loadSession('session-123')
@@ -106,20 +99,32 @@ describe(usePlanningStore.name, () => {
       expect(usePlanningStore.getState().currentSession).toBeNull()
     })
 
-    it('should handle localStorage errors gracefully', () => {
-      localStorageMock.getItem.mockImplementation(() => {
-        throw new Error('Storage error')
+    it('should handle invalid session data gracefully', () => {
+      // Add an invalid session to the store
+      const invalidSession = {
+        id: 'invalid-session',
+        name: '', // Invalid: empty name
+        code: 'INVALID',
+        stories: [],
+        anchorStoryId: null,
+        anchorStoryPoints: null,
+        createdAt: new Date(),
+        lastModified: new Date(),
+      }
+
+      usePlanningStore.setState({
+        sessions: { 'invalid-session': invalidSession as any },
       })
 
       const store = usePlanningStore.getState()
-      const result = store.loadSession('session-123')
+      const result = store.loadSession('invalid-session')
 
       expect(result).toBe(false)
     })
   })
 
   describe('clearSession', () => {
-    it('should clear current session and remove from localStorage', () => {
+    it('should clear current session', () => {
       const testSession = createTestSession({ id: 'session-123' })
       usePlanningStore.setState({ currentSession: testSession })
 
@@ -127,7 +132,6 @@ describe(usePlanningStore.name, () => {
       store.clearSession()
 
       expect(usePlanningStore.getState().currentSession).toBeNull()
-      expect(localStorageMock.setItem).toHaveBeenCalled()
     })
   })
 
@@ -498,63 +502,6 @@ describe(usePlanningStore.name, () => {
     })
   })
 
-  describe('togglePointAssignmentMode', () => {
-    beforeEach(() => {
-      const testSession = createTestSession({ isPointAssignmentMode: false })
-      usePlanningStore.setState({ currentSession: testSession })
-    })
-
-    it('should toggle point assignment mode', () => {
-      const store = usePlanningStore.getState()
-
-      store.togglePointAssignmentMode()
-
-      const { currentSession } = usePlanningStore.getState()
-      expect(currentSession?.isPointAssignmentMode).toBe(true)
-
-      store.togglePointAssignmentMode()
-
-      const updatedSession = usePlanningStore.getState().currentSession
-      expect(updatedSession?.isPointAssignmentMode).toBe(false)
-    })
-  })
-
-  describe('updatePointCutoffs', () => {
-    beforeEach(() => {
-      const testSession = createTestSession()
-      usePlanningStore.setState({ currentSession: testSession })
-    })
-
-    it('should update point cutoffs', () => {
-      const cutoffs: PointCutoff[] = [
-        createTestPointCutoff({
-          id: 'cutoff-1',
-          position: { x: -50, y: 0 },
-          pointValue: 1,
-        }),
-        createTestPointCutoff({
-          id: 'cutoff-2',
-          position: { x: 0, y: 0 },
-          pointValue: 3,
-        }),
-        createTestPointCutoff({
-          id: 'cutoff-3',
-          position: { x: 50, y: 0 },
-          pointValue: 8,
-        }),
-      ]
-
-      const store = usePlanningStore.getState()
-      store.updatePointCutoffs(cutoffs)
-
-      const { currentSession } = usePlanningStore.getState()
-      expect(currentSession?.pointCutoffs).toHaveLength(3)
-      expect(currentSession?.pointCutoffs[0].pointValue).toBe(1)
-      expect(currentSession?.pointCutoffs[1].pointValue).toBe(3)
-      expect(currentSession?.pointCutoffs[2].pointValue).toBe(8)
-    })
-  })
-
   describe('exportResults', () => {
     it('should export session results with story points', () => {
       const stories = [
@@ -580,16 +527,9 @@ describe(usePlanningStore.name, () => {
         }),
       ]
 
-      const cutoffs: PointCutoff[] = [
-        createTestPointCutoff({ position: { x: -50, y: 0 }, pointValue: 1 }),
-        createTestPointCutoff({ position: { x: 0, y: 0 }, pointValue: 3 }),
-        createTestPointCutoff({ position: { x: 50, y: 0 }, pointValue: 8 }),
-      ]
-
       const testSession = createTestSession({
         name: 'Export Test Session',
         stories,
-        pointCutoffs: cutoffs,
       })
       usePlanningStore.setState({ currentSession: testSession })
 

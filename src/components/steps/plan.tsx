@@ -1,41 +1,37 @@
 'use client'
 
-import { useDialogStore } from '@/stores'
 import { DndProvider } from '../DndProvider'
 import { PlanningCanvas } from '../PlanningCanvas'
 import { StoryDialog } from '../StoryDialog'
-import { useStepper } from './main-stepper'
 import { Button } from '../ui/button'
-import { usePlanningStore } from '@/stores/planning-store'
 import { ArrowRightIcon, PlusIcon } from 'lucide-react'
+import { Story } from '@/types'
 
-export function Plan() {
-  const { openEditStoryDialog } = useDialogStore()
-
+export function Plan(props: { onStoryDoubleClick: (story: Story) => void }) {
   return (
     <DndProvider>
       <StoryDialog />
-      <PlanningCanvas onStoryDoubleClick={openEditStoryDialog} />
+      <PlanningCanvas onStoryDoubleClick={props.onStoryDoubleClick} />
     </DndProvider>
   )
 }
 
-export function PlanActions() {
-  const { next } = useStepper()
-  const { openAddStoryDialog } = useDialogStore()
-  const { currentSession } = usePlanningStore()
-
-  if (!currentSession) return null
-
-  const { stories } = currentSession
-
+export function PlanActions(props: {
+  onAddStory: () => void
+  stories: Story[]
+  next: () => void
+}) {
   return (
     <section className="flex items-center justify-center gap-4">
-      <Button onClick={openAddStoryDialog} disabled={stories.length < 1}>
+      <Button onClick={props.onAddStory} disabled={props.stories.length < 1}>
         <PlusIcon className="w-4 h-4" />
-        Add a new Story
+        Add a new story
       </Button>
-      <Button variant="outline" onClick={next} disabled={stories.length < 2}>
+      <Button
+        variant="outline"
+        onClick={props.next}
+        disabled={props.stories.length < 2}
+      >
         Go estimate
         <ArrowRightIcon className="w-4 h-4" />
       </Button>

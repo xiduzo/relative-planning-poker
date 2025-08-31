@@ -7,12 +7,14 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import {
   PlanningSession,
   Story,
-  PointCutoff,
   CreateStoryInput,
   ExportData,
   StorySchema,
   CreateStoryInputSchema,
   PlanningSessionSchema,
+  FIBONACCI_NUMBERS,
+  FibonacciNumber,
+  FibonacciNumberSchema,
 } from '@/types'
 import { generateId } from '@/utils'
 import {
@@ -29,6 +31,7 @@ export interface PlanningStore {
   // Session actions
   createSession: (name: string, code: string) => void
   loadSessionByCode: (code: string) => void
+  loadSession: (sessionId: string) => boolean
   clearSession: () => void
 
   // Story management actions
@@ -46,9 +49,8 @@ export interface PlanningStore {
   // Anchor story management
   setAnchorStory: (storyId: string) => void
 
-  // Point assignment mode
-  togglePointAssignmentMode: () => void
-  updatePointCutoffs: (cutoffs: PointCutoff[]) => void
+  // Estimate step actions
+  setAnchorStoryPoints: (points: FibonacciNumber | null) => void
 
   // Export functionality
   exportResults: () => ExportData
@@ -62,23 +64,19 @@ export const usePlanningStore = create<PlanningStore>()(
 
       createSession: (name: string, code: string) => {
         const now = new Date()
-        const session: PlanningSession = {
+        const sessionData = {
           id: generateId(),
           name: name,
           code: code,
           stories: [],
           anchorStoryId: null,
-          pointCutoffs: [],
-          isPointAssignmentMode: false,
+          anchorStoryPoints: null,
           createdAt: now,
           lastModified: now,
         }
 
-        // Validate the session
-        const validationResult = PlanningSessionSchema.safeParse(session)
-        if (!validationResult.success) {
-          throw validationResult.error
-        }
+        // Validate and transform the session
+        const session = PlanningSessionSchema.parse(sessionData)
 
         set({
           currentSession: session,
@@ -111,6 +109,37 @@ export const usePlanningStore = create<PlanningStore>()(
         if (!validationResult.success) throw validationResult.error
 
         set({ currentSession: parsedSession })
+      },
+
+      loadSession: (sessionId: string): boolean => {
+        try {
+          const sessions = get().sessions
+          const session = sessions[sessionId]
+
+          if (!session) return false
+
+          // Parse dates from stored JSON
+          const parsedSession: PlanningSession = {
+            ...session,
+            createdAt: new Date(session.createdAt),
+            lastModified: new Date(session.lastModified),
+            stories: session.stories.map(story => ({
+              ...story,
+              createdAt: new Date(story.createdAt),
+              updatedAt: new Date(story.updatedAt),
+            })),
+          }
+
+          // Validate the loaded session
+          const validationResult =
+            PlanningSessionSchema.safeParse(parsedSession)
+          if (!validationResult.success) return false
+
+          set({ currentSession: parsedSession })
+          return true
+        } catch (error) {
+          return false
+        }
       },
 
       clearSession: () => {
@@ -326,33 +355,17 @@ export const usePlanningStore = create<PlanningStore>()(
         })
       },
 
-      togglePointAssignmentMode: () => {
+      setAnchorStoryPoints: (points: FibonacciNumber | null) => {
         const { currentSession } = get()
         if (!currentSession) {
           throw new Error('No active session')
         }
 
-        const updatedSession: PlanningSession = {
-          ...currentSession,
-          isPointAssignmentMode: !currentSession.isPointAssignmentMode,
-          lastModified: new Date(),
-        }
-
-        set({
-          currentSession: updatedSession,
-          sessions: { ...get().sessions, [updatedSession.id]: updatedSession },
-        })
-      },
-
-      updatePointCutoffs: (cutoffs: PointCutoff[]) => {
-        const { currentSession } = get()
-        if (!currentSession) {
-          throw new Error('No active session')
-        }
+        FibonacciNumberSchema.parse(points)
 
         const updatedSession: PlanningSession = {
           ...currentSession,
-          pointCutoffs: [...cutoffs],
+          anchorStoryPoints: points,
           lastModified: new Date(),
         }
 
@@ -371,33 +384,17 @@ export const usePlanningStore = create<PlanningStore>()(
         // Calculate story points based on cutoffs
         const storiesWithPoints = currentSession.stories.map(story => {
           let storyPoints: number | null = null
+          const position = story.position.x
 
-          // Find the appropriate point value based on cutoffs (using x-coordinate for complexity)
-          const sortedCutoffs = [...currentSession.pointCutoffs].sort(
-            (a, b) => a.position.x - b.position.x
-          )
-
-          for (let i = 0; i < sortedCutoffs.length; i++) {
-            const cutoff = sortedCutoffs[i]
-            const nextCutoff = sortedCutoffs[i + 1]
-
-            if (nextCutoff) {
-              // Story is between this cutoff and the next
-              if (
-                story.position.x >= cutoff.position.x &&
-                story.position.x < nextCutoff.position.x
-              ) {
-                storyPoints = cutoff.pointValue
-                break
-              }
-            } else {
-              // This is the last cutoff, story is beyond it
-              if (story.position.x >= cutoff.position.x) {
-                storyPoints = cutoff.pointValue
-                break
-              }
-            }
+          // Define cutoffs for story point assignment
+          if (position >= -50 && position < 0) {
+            storyPoints = 1
+          } else if (position >= 0 && position < 50) {
+            storyPoints = 3
+          } else if (position >= 50) {
+            storyPoints = 8
           }
+          // position < -50 remains null
 
           return {
             title: story.title,

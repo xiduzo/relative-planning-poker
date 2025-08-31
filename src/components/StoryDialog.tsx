@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -16,6 +16,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -37,6 +38,28 @@ const formSchema = CreateStoryInputSchema
 
 type FormData = z.infer<typeof formSchema>
 
+const titlePlaceholders = [
+  'Enter story title...',
+  'PROJ-123: User authentication',
+  'Feature: Shopping cart',
+  'Bug: Login page crash',
+  'Epic: Payment integration',
+  'Task: Update user profile',
+  'Story: Email notifications',
+  'Ticket: API rate limiting',
+]
+
+const descriptionPlaceholders = [
+  'Enter story description...',
+  'As a user, I want to be able to log in so that I can access my account.',
+  'As a customer, I want to add items to my cart so that I can purchase them.',
+  'As an admin, I want to view user statistics so that I can monitor activity.',
+  'As a developer, I want to receive notifications so that I know when builds fail.',
+  'As a user, I want to reset my password so that I can regain access if I forget it.',
+  'As a customer, I want to save my payment methods so that I can checkout faster.',
+  'As a manager, I want to generate reports so that I can track team performance.',
+]
+
 export function StoryDialog() {
   const { isStoryDialogOpen, dialogMode, storyToEdit, closeStoryDialog } =
     useDialogStore()
@@ -51,7 +74,7 @@ export function StoryDialog() {
   })
 
   // Update form when storyToEdit changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (storyToEdit && dialogMode === 'edit') {
       form.reset({
         title: storyToEdit.title,
@@ -97,11 +120,23 @@ export function StoryDialog() {
     closeStoryDialog()
   }
 
+  const titlePlaceholder = useMemo(() => {
+    return titlePlaceholders[
+      Math.floor(Math.random() * titlePlaceholders.length)
+    ]
+  }, [isStoryDialogOpen])
+
+  const descriptionPlaceholder = useMemo(() => {
+    return descriptionPlaceholders[
+      Math.floor(Math.random() * descriptionPlaceholders.length)
+    ]
+  }, [isStoryDialogOpen])
+
   const isEditMode = dialogMode === 'edit'
-  const dialogTitle = isEditMode ? 'Edit Story' : 'Add New Story'
+  const dialogTitle = isEditMode ? 'Edit story' : 'Add new story'
   const dialogDescription = isEditMode
     ? 'Update the details of your user story.'
-    : 'Create a new user story for your planning session. Fill in the details below.'
+    : 'Create a new user story for your planning session.'
   const submitButtonText = isEditMode ? 'Update Story' : 'Add Story'
 
   return (
@@ -120,9 +155,12 @@ export function StoryDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Title</FormLabel>
+                  <FormDescription>
+                    E.g., Ticket number, Feature name or other identifier.
+                  </FormDescription>
                   <FormControl>
                     <Input
-                      placeholder="Enter story title..."
+                      placeholder={titlePlaceholder}
                       {...field}
                       maxLength={STORY_TITLE_MAX_LENGTH}
                     />
@@ -138,9 +176,13 @@ export function StoryDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
+                  <FormDescription>
+                    E.g., What is the user story? What is the expected behavior?
+                    What is the expected result?
+                  </FormDescription>
                   <FormControl>
                     <Textarea
-                      placeholder="Enter story description..."
+                      placeholder={descriptionPlaceholder}
                       className="resize-none"
                       {...field}
                       maxLength={STORY_DESCRIPTION_MAX_LENGTH}

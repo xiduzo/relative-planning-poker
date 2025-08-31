@@ -3,7 +3,7 @@
  */
 
 import { fromPartial } from '@total-typescript/shoehorn'
-import type { Story, PlanningSession, PointCutoff, Participant } from '../types'
+import type { Story, PlanningSession, Participant } from '../types'
 
 /**
  * Creates a partial Story object for testing
@@ -33,25 +33,8 @@ export function createTestSession(
     code: 'TEST12',
     stories: [],
     anchorStoryId: null,
-    pointCutoffs: [],
-    isPointAssignmentMode: false,
     createdAt: new Date('2024-01-01'),
     lastModified: new Date('2024-01-01'),
-    ...partial,
-  })
-}
-
-/**
- * Creates a partial PointCutoff object for testing
- */
-export function createTestPointCutoff(
-  partial: Partial<PointCutoff> = {}
-): PointCutoff {
-  return fromPartial<PointCutoff>({
-    id: 'test-cutoff-1',
-    position: { x: 0, y: 0 },
-    pointValue: 5,
-    label: '5 points',
     ...partial,
   })
 }

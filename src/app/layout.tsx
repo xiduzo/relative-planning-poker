@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeToggle, Logo } from '@/components'
 import { Toaster } from '@/components/ui/sonner'
+import Link from 'next/link'
+import { Meteors } from '@/components/magicui/meteors'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -15,8 +17,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'StoryScape',
-  description: 'A modern tool for agile estimation using relative positioning',
+  title: 'Pokernaut',
+  description: 'Navigate your estimates with confidence',
 }
 
 export default function RootLayout({
@@ -33,7 +35,9 @@ export default function RootLayout({
           <div className="container mx-auto py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <Logo size="md" />
+                <Link href="/" className="hover:opacity-80 transition-opacity">
+                  <Logo size="md" />
+                </Link>
               </div>
               <ThemeToggle />
             </div>
@@ -42,6 +46,15 @@ export default function RootLayout({
 
         <main className="flex-1 flex">{children}</main>
         <Toaster position="bottom-right" />
+        <div className="absolute inset-0 overflow-hidden -z-50">
+          <Meteors
+            number={2}
+            minDuration={0.6}
+            maxDuration={1.2}
+            minDelay={30}
+            maxDelay={90}
+          />
+        </div>
       </body>
     </html>
   )

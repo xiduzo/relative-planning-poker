@@ -2,13 +2,20 @@
  * Utility functions for story position calculations and normalization
  */
 
-import type { Story, Position2D } from '../types'
-import { POSITION_MIN, POSITION_MAX, POSITION_RANGE } from '../types'
+import type { Story, Position2D, FibonacciNumber } from '../types'
+import {
+  POSITION_MIN,
+  POSITION_MAX,
+  POSITION_RANGE,
+  FIBONACCI_NUMBERS,
+} from '../types'
 
 // Additional constants for position calculations
 export const ANCHOR_POSITION: Position2D = { x: 0, y: 0 }
 export const DEFAULT_SPACING = 10
 const ONE_HUNDRED_PERCENT = 100
+const MAX_SCORE = 10
+const BASE_SCORE = MAX_SCORE / 2
 
 /**
  * Normalizes a 2D position value to be within the valid range
@@ -45,7 +52,6 @@ export function positionToPercentage(position: Position2D): {
  * @returns Score from 0 to 5
  */
 function calculateAxisScore(value: number, isLowerBetter: boolean): number {
-  const BASE_SCORE = 5
   const EXPONENTIAL = 1.65
 
   // Normalize to 0-1 range
@@ -54,13 +60,15 @@ function calculateAxisScore(value: number, isLowerBetter: boolean): number {
   // For lower-is-better axes, invert the normalized value
   const adjustedValue = isLowerBetter ? 1 - normalized : normalized
 
-  return BASE_SCORE * Math.pow(adjustedValue, EXPONENTIAL)
+  const score = BASE_SCORE * Math.pow(adjustedValue, EXPONENTIAL)
+  if (Number.isNaN(score)) return 0 // We are out of bounds
+  return score
 }
 
 /**
  * Calculate total exponential score for a position
  * @param position - The 2D position
- * @returns Total score (0-10, where higher is better)
+ * @returns Total score (0 to 10, where 5 is neutral)
  */
 export function calculatePositionScore(position: Position2D): number {
   // X-axis: lower is better (complexity)
@@ -124,4 +132,55 @@ export function adjustStoriesRelativeToNewAnchor(
       updatedAt: now,
     }
   })
+}
+
+/**
+ * Calculate story points for a story based on its distance from the anchor story
+ * @param story - The story to calculate points for
+ * @param anchorStory - The anchor story
+ * @param anchorStoryPoints - The story points assigned to the anchor story
+ * @returns The calculated story points (Fibonacci number)
+ */
+export function calculateStoryPoints(
+  story: Story,
+  anchorStory?: Story | null,
+  anchorStoryPoints: FibonacciNumber | null = null
+): number | null {
+  if (!anchorStory) return null
+  if (!anchorStoryPoints) return null
+  if (story.id === anchorStory.id) return anchorStoryPoints
+
+  const score = calculatePositionScore(story.position)
+
+  // if the score is > BASE SCORE, we need to scale the points up
+  // if the score is < BASE SCORE, we need to scale the points down
+
+  const anchorPointsIndex = FIBONACCI_NUMBERS.indexOf(anchorStoryPoints)
+
+  if (anchorPointsIndex === -1) throw Error('Anchor story points not found')
+
+  const RELATIVE_SCORE_MIN = 1.25
+  const relativeScore = BASE_SCORE - score
+  const relativeScorePercentage =
+    ((relativeScore - RELATIVE_SCORE_MIN) / BASE_SCORE) * 100
+
+  // Calculate the direction and available range
+  const isDecreasing = relativeScorePercentage <= 0
+  const availableIndexes = isDecreasing
+    ? anchorPointsIndex
+    : FIBONACCI_NUMBERS.length - anchorPointsIndex
+
+  const index = Math.floor(
+    (Math.abs(relativeScorePercentage) * availableIndexes) / 100
+  )
+  const newIndex = isDecreasing
+    ? anchorPointsIndex - index
+    : anchorPointsIndex + index
+
+  const newPoints = FIBONACCI_NUMBERS[newIndex]
+
+  // Apply bounds checking
+  return isDecreasing
+    ? Math.max(newPoints, FIBONACCI_NUMBERS[0])
+    : Math.min(newPoints, FIBONACCI_NUMBERS.at(-1) ?? Number.MAX_SAFE_INTEGER)
 }

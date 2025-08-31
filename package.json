@@ -1,5 +1,6 @@
 {
-  "name": "relative-planning-poker",
+  "name": "pokernaut",
+  "description": "Navigate your estimates with confidence",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -57,6 +58,7 @@
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.542.0",
+    "motion": "^12.23.12",
     "next": "15.5.0",
     "next-themes": "^0.4.6",
     "react": "19.1.0",

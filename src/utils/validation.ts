@@ -16,7 +16,6 @@ import {
   CreateStoryInputSchema,
   UpdateStoryInputSchema,
   PlanningSessionSchema,
-  PointCutoffSchema,
 } from '../types'
 
 /**
@@ -94,27 +93,6 @@ export function validateUpdateStoryInput(
 export function validateStory(story: Story): ValidationResult {
   try {
     StorySchema.parse(story)
-    return {
-      isValid: true,
-      errors: [],
-    }
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return {
-        isValid: false,
-        errors: zodErrorToValidationErrors(error),
-      }
-    }
-    throw error
-  }
-}
-
-/**
- * Validates point value using Zod schema
- */
-export function validatePointValue(pointValue: number): ValidationResult {
-  try {
-    PointCutoffSchema.shape.pointValue.parse(pointValue)
     return {
       isValid: true,
       errors: [],

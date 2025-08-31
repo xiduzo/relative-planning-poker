@@ -72,9 +72,9 @@ export function Session() {
   return (
     <div className="flex flex-col items-center space-y-8 p-6">
       <div className="text-center space-y-4 max-w-md">
-        <h1 className="text-3xl font-bold">Join a Planning Session</h1>
+        <h1 className="text-3xl font-bold">Connect to a session</h1>
         <p className="text-muted-foreground">
-          Enter the session code to join an existing planning session
+          Enter the code to join an existing planning session
         </p>
       </div>
 
@@ -199,8 +199,8 @@ type CreateSessionForm = z.infer<typeof createSessionSchema>
 
 function CreateSessionDialog() {
   const [isCreating, setIsCreating] = useState(false)
-  const { next } = useStepper()
-
+  const { next, prev } = useStepper()
+  const router = useRouter()
   const { createSession } = usePlanningStore()
 
   const form = useForm<CreateSessionForm>({
@@ -213,11 +213,12 @@ function CreateSessionDialog() {
   const handleCreateSession = (data: CreateSessionForm) => {
     const sessionCode = generateSessionId()
     try {
+      next() // Already show the next step
       createSession(data.name, sessionCode)
       form.reset()
-      //   next()
+      router.push(`/session/${sessionCode}`)
     } catch (error) {
-      console.error(error)
+      prev()
       toast.error('Failed to create session', {
         description: getErrorMessage(error),
       })

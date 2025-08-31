@@ -12,7 +12,7 @@ import { useDialogStore } from '@/stores/dialog-store'
 import { cn } from '@/lib/utils'
 import { normalizePosition2D, positionToPercentage } from '@/utils/position'
 import { Button } from './ui/button'
-import { AnchorIcon, Plus } from 'lucide-react'
+import { AnchorIcon, Plus, SparkleIcon } from 'lucide-react'
 import type { Story } from '@/types'
 import { Badge } from './ui/badge'
 import { toast } from 'sonner'
@@ -31,6 +31,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   const updateStoryPosition = usePlanningStore(
     state => state.updateStoryPosition
   )
+  const isEstimateMode = currentSession?.anchorStoryPoints ?? false
 
   // Set up droppable area for the entire canvas
   const { setNodeRef, isOver } = useDroppable({
@@ -70,7 +71,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
     try {
       setAnchorStory(story.id)
     } catch (error) {
-      toast.error('Failed to set anchor story', {
+      toast.error('Failed to set beacon story', {
         description: getErrorMessage(error),
       })
     }
@@ -204,8 +205,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
               key={story.id}
               className="absolute hover:!z-50"
               style={{
-                left: percentagePosition.left,
-                top: percentagePosition.top,
+                ...percentagePosition,
                 transform: 'translate(-50%, -50%)',
                 zIndex: index,
               }}
@@ -217,6 +217,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
                 onEdit={() => handleEditStory(story)}
                 onDelete={() => handleDeleteStory(story)}
                 onMakeAnchor={() => handleMakeAnchor(story)}
+                enableDrag={!isEstimateMode}
               />
             </div>
           )
@@ -228,15 +229,15 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
             <div className="text-center space-y-4">
               <div className="space-y-2">
                 <p className="text-muted-foreground font-medium">
-                  Much empty...
+                  Mission control ready...
                 </p>
                 <p className="text-sm text-muted-foreground/70">
-                  Add an anchor story to get started
+                  Deploy your beacon story to begin navigation
                 </p>
               </div>
               <Button onClick={openAddStoryDialog} size="lg">
-                <AnchorIcon className="h-5 w-5" />
-                Add an anchor Story
+                <SparkleIcon className="h-5 w-5" />
+                Add a beacon
               </Button>
             </div>
           </div>
@@ -246,9 +247,6 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
         {isOver && (
           <div className="absolute inset-0 pointer-events-none z-50">
             <div className="absolute inset-4 border-2 border-dashed border-primary/30 rounded-lg animate-pulse" />
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <Badge>Drop to position story</Badge>
-            </div>
           </div>
         )}
       </section>

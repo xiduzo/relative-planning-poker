@@ -1,5 +1,5 @@
 /**
- * Core data models and Zod schemas for StoryScape
+ * Core data models and Zod schemas for Pokernaut
  */
 
 import { z } from 'zod'
@@ -11,8 +11,13 @@ export const POSITION_RANGE = POSITION_MAX - POSITION_MIN
 export const STORY_TITLE_MAX_LENGTH = 100
 export const STORY_DESCRIPTION_MAX_LENGTH = 500
 export const SESSION_NAME_MAX_LENGTH = 50
-export const FIBONACCI_NUMBERS = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89] as const
 export const SESSION_CODE_LENGTH = 6
+
+export const FIBONACCI_NUMBERS = [1, 2, 3, 5, 8, 13, 21, 34, 55] as const
+export const FibonacciNumberSchema = z.union([
+  ...FIBONACCI_NUMBERS.map(x => z.literal(x)),
+  z.null(),
+])
 
 // 2D Position type for complexity and uncertainty
 export const Position2DSchema = z.object({
@@ -62,21 +67,6 @@ export const StorySchema = z.object({
   updatedAt: z.date(),
 })
 
-export const PointCutoffSchema = z.object({
-  id: z.string().min(1, 'Point cutoff ID is required'),
-  position: Position2DSchema,
-  pointValue: z
-    .number()
-    .refine(
-      val =>
-        FIBONACCI_NUMBERS.includes(val as (typeof FIBONACCI_NUMBERS)[number]),
-      {
-        message: `Point value must be a Fibonacci number: ${FIBONACCI_NUMBERS.join(', ')}`,
-      }
-    ),
-  label: z.string().min(1, 'Label is required'),
-})
-
 export const ParticipantSchema = z.object({
   id: z.string().trim().min(1, 'Participant ID is required'),
   name: z.string().trim().min(1, 'Participant name is required'),
@@ -108,8 +98,7 @@ export const PlanningSessionSchema = z
       .max(SESSION_CODE_LENGTH, 'Session code must be 6 characters long'),
     stories: z.array(StorySchema).default([]),
     anchorStoryId: z.string().nullable().default(null),
-    pointCutoffs: z.array(PointCutoffSchema).default([]),
-    isPointAssignmentMode: z.boolean().default(false),
+    anchorStoryPoints: FibonacciNumberSchema.nullable().default(null),
     createdAt: z.date(),
     lastModified: z.date(),
   })
@@ -188,12 +177,12 @@ export const UpdateStoryInputSchema = z.object({
 // TypeScript types inferred from Zod schemas
 export type Position2D = z.infer<typeof Position2DSchema>
 export type Story = z.infer<typeof StorySchema>
-export type PointCutoff = z.infer<typeof PointCutoffSchema>
 export type Participant = z.infer<typeof ParticipantSchema>
 export type PlanningSession = z.infer<typeof PlanningSessionSchema>
 export type ExportData = z.infer<typeof ExportDataSchema>
 export type CreateStoryInput = z.infer<typeof CreateStoryInputSchema>
 export type UpdateStoryInput = z.infer<typeof UpdateStoryInputSchema>
+export type FibonacciNumber = z.infer<typeof FibonacciNumberSchema>
 
 // Validation result types (keeping these for consistency with existing code)
 export interface ValidationError {

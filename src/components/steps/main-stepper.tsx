@@ -1,25 +1,31 @@
 'use client'
 
 import { defineStepper } from '../stepper'
-import { AnchorIcon, RectangleEllipsisIcon, Tally5Icon } from 'lucide-react'
+import {
+  AnchorIcon,
+  RectangleEllipsisIcon,
+  SparkleIcon,
+  Tally5Icon,
+} from 'lucide-react'
 
 import { Session, SessionActions } from './session'
 import { Estimate, EstimateActions } from './estimate'
 import { Plan, PlanActions } from './plan'
 import { useParams } from 'next/navigation'
+import { useDialogStore, usePlanningStore } from '@/stores'
 
 const { Stepper, useStepper, steps, utils } = defineStepper(
   {
     id: 'step-1',
     title: 'Session',
-    description: 'Connect',
+    description: 'connect', // Will get replaced with the session code
     icon: <RectangleEllipsisIcon />,
   },
   {
     id: 'step-2',
-    title: 'Plan',
+    title: 'Explore',
     description: null,
-    icon: <AnchorIcon />,
+    icon: <SparkleIcon />,
   },
   {
     id: 'step-3',
@@ -32,7 +38,7 @@ const { Stepper, useStepper, steps, utils } = defineStepper(
 export { useStepper, steps, utils }
 
 export function MainStepper() {
-  const { code } = useParams()
+  const { code } = useParams<{ code: string }>()
 
   return (
     <>
@@ -40,37 +46,72 @@ export function MainStepper() {
         className="flex flex-col gap-10 flex-1 container mx-auto py-4"
         initialStep={code ? 'step-2' : 'step-1'}
       >
-        {({ methods }) => (
-          <>
-            <Stepper.Navigation>
-              {methods.all.map(step => (
-                <Stepper.Step key={step.id} of={step.id} icon={step.icon}>
-                  <Stepper.Title>{step.title}</Stepper.Title>
-                  {step.description && (
-                    <Stepper.Description>
-                      {code ?? step.description}
-                    </Stepper.Description>
-                  )}
-                </Stepper.Step>
-              ))}
-            </Stepper.Navigation>
-            <Stepper.Panel className="flex-1 flex flex-col">
-              {methods.switch({
-                'step-1': Session,
-                'step-2': Plan,
-                'step-3': Estimate,
-              })}
-            </Stepper.Panel>
-            <Stepper.Controls className="flex items-center justify-center">
-              {methods.switch({
-                'step-1': SessionActions,
-                'step-2': PlanActions,
-                'step-3': EstimateActions,
-              })}
-            </Stepper.Controls>
-          </>
-        )}
+        <Navigation code={code} />
+        <Panel />
+        <Controls />
       </Stepper.Provider>
     </>
+  )
+}
+
+function Navigation(props: { code?: string }) {
+  return (
+    <Stepper.Navigation>
+      {steps.map(step => (
+        <Stepper.Step key={step.id} of={step.id} icon={step.icon}>
+          <Stepper.Title>{step.title}</Stepper.Title>
+          {step.description && (
+            <Stepper.Description>
+              {props.code ?? step.description}
+            </Stepper.Description>
+          )}
+        </Stepper.Step>
+      ))}
+    </Stepper.Navigation>
+  )
+}
+
+function Panel() {
+  const { switch: stepSwitch } = useStepper()
+  const { openEditStoryDialog } = useDialogStore()
+  const { currentSession } = usePlanningStore()
+
+  const anchorStory = currentSession?.stories.find(s => s.isAnchor)
+
+  return (
+    <Stepper.Panel className="flex-1 flex flex-col">
+      {stepSwitch({
+        'step-1': () => <Session />,
+        'step-2': () => <Plan onStoryDoubleClick={openEditStoryDialog} />,
+        'step-3': () => <Estimate />,
+      })}
+    </Stepper.Panel>
+  )
+}
+
+function Controls() {
+  const { switch: stepSwitch, next, prev } = useStepper()
+  const { openAddStoryDialog } = useDialogStore()
+  const { currentSession, setAnchorStoryPoints } = usePlanningStore()
+
+  return (
+    <Stepper.Controls className="flex items-center justify-center">
+      {stepSwitch({
+        'step-1': () => <SessionActions />,
+        'step-2': () => (
+          <PlanActions
+            onAddStory={openAddStoryDialog}
+            stories={currentSession?.stories ?? []}
+            next={next}
+          />
+        ),
+        'step-3': () => (
+          <EstimateActions
+            prev={prev}
+            setAnchorStoryPoints={setAnchorStoryPoints}
+          />
+        ),
+      })}
+    </Stepper.Controls>
   )
 }

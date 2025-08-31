@@ -22,12 +22,19 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import { Anchor, AnchorIcon, Edit, Trash2 } from 'lucide-react'
+import {
+  BadgeQuestionMarkIcon,
+  EditIcon,
+  SparkleIcon,
+  Trash2Icon,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { calculatePositionScore } from '@/utils/position'
+import { calculatePositionScore, calculateStoryPoints } from '@/utils/position'
 import type { Story } from '@/types'
+import { usePlanningStore } from '@/stores/planning-store'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { BorderBeam } from './magicui/border-beam'
 
 const scoreFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
@@ -58,6 +65,9 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   isDragging = false,
   enableDrag = true,
 }) => {
+  const currentSession = usePlanningStore(state => state.currentSession)
+  const anchorStoryPoints = currentSession?.anchorStoryPoints
+
   // Anchor stories cannot be dragged
   const canDrag = enableDrag && !story.isAnchor
 
@@ -123,6 +133,12 @@ export const StoryCard: React.FC<StoryCardProps> = ({
     return calculatePositionScore(story.position)
   }, [story.position])
 
+  const storyPoints = useMemo(() => {
+    const anchorStory = currentSession?.stories.find(s => s.isAnchor)
+
+    return calculateStoryPoints(story, anchorStory, anchorStoryPoints)
+  }, [anchorStoryPoints, currentSession, story])
+
   const cardContent = (
     <Card
       ref={combinedRef}
@@ -134,12 +150,13 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       className={cn(
         // Base styles
         'select-none transition-all duration-200 ease-in-out',
-        'w-full max-w-xs min-w-[175px]',
-        'border-border bg-card',
+        'w-full max-w-[175px] min-w-[175px]',
+        'border-border bg-card gap-3 py-4',
 
         // Hover states (disabled when dragging)
         !isCurrentlyDragging &&
-          !story.isAnchor && [
+          !story.isAnchor &&
+          !anchorStoryPoints && [
             'hover:shadow-md hover:scale-[1.02] hover:border-primary/20',
           ],
 
@@ -149,15 +166,13 @@ export const StoryCard: React.FC<StoryCardProps> = ({
           'transform-gpu will-change-transform',
         ],
 
-        // Anchor story styling
-        story.isAnchor && ['bg-muted'],
-
         // Non-anchor story styling
-        !story.isAnchor && [
-          'cursor-pointer',
-          // Focus styles for keyboard navigation
-          'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-        ],
+        !story.isAnchor &&
+          !anchorStoryPoints && [
+            'cursor-pointer',
+            // Focus styles for keyboard navigation
+            'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+          ],
 
         className
       )}
@@ -171,16 +186,16 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       }}
       {...(enableDrag ? { ...attributes, ...listeners } : {})}
     >
-      <CardHeader className="pb-3">
+      <CardHeader className="px-4">
         <CardTitle>{story.title}</CardTitle>
-        <CardAction>
+        <CardDescription>
           {!story.isAnchor && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Badge
                   className={cn(
-                    'h-3 w-5 -translate-y-1 rounded-full',
-                    'bg-red-500',
+                    'bg-red-500 text-white',
+                    'text-xs font-extrabold w-9',
                     cardScore > 1 && ['bg-orange-500'],
                     cardScore > 2 && ['bg-amber-500'],
                     cardScore > 3 && ['bg-yellow-500'],
@@ -189,45 +204,66 @@ export const StoryCard: React.FC<StoryCardProps> = ({
                     cardScore > 7 && ['bg-emerald-500'],
                     cardScore > 8 && ['bg-teal-500']
                   )}
-                  aria-label="Story point indication"
+                  aria-label={
+                    anchorStoryPoints
+                      ? 'Story point estimation'
+                      : 'Story point indication'
+                  }
                 >
-                  {/* For debugging purposes, we'll show the score as a number */}
-                  {/* {scoreFormatter.format(cardScore)} */}
+                  <div
+                    className={anchorStoryPoints ? 'opacity-100' : 'opacity-0'}
+                  >
+                    {scoreFormatter.format(storyPoints ?? 0)}
+                  </div>
                 </Badge>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>
+              {!anchorStoryPoints && (
+                <TooltipContent>
                   This indicates the amount of work required to complete the
                   story.
-                </p>
-              </TooltipContent>
+                </TooltipContent>
+              )}
+              {anchorStoryPoints && (
+                <TooltipContent>
+                  Estimated story points based on distance from beacon story.
+                </TooltipContent>
+              )}
             </Tooltip>
           )}
           {story.isAnchor && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge variant="outline" aria-label="Anchor story indicator">
-                  <AnchorIcon className="w-3 h-3" aria-hidden="true" />
+                <Badge
+                  variant="outline"
+                  className="w-9 h-5"
+                  aria-label="Anchor story indicator"
+                >
+                  <SparkleIcon aria-hidden="true" />
                 </Badge>
               </TooltipTrigger>
               <TooltipContent>
-                <p>
-                  Your anchor story acts as the reference point for the other
-                  stories.
-                </p>
+                Your beacon story acts as the reference point for the other
+                stories.
               </TooltipContent>
             </Tooltip>
           )}
-        </CardAction>
-        {story.isAnchor && <CardDescription>Anchor story</CardDescription>}
+        </CardDescription>
       </CardHeader>
 
       {story.description && (
-        <CardContent className="max-w-xs">
+        <CardContent className="px-4">
           <CardDescription className="text-xs leading-relaxed line-clamp-3">
             {story.description}
           </CardDescription>
         </CardContent>
+      )}
+
+      {story.isAnchor && (
+        <BorderBeam
+          duration={16}
+          size={100}
+          className="from-transparent via-blue-500 to-transparent"
+        />
       )}
     </Card>
   )
@@ -240,14 +276,14 @@ export const StoryCard: React.FC<StoryCardProps> = ({
         <ContextMenuContent className="w-48">
           {onEdit && (
             <ContextMenuItem onClick={onEdit}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Story
+              <EditIcon className="h-4 w-4" />
+              Edit story
             </ContextMenuItem>
           )}
           {onMakeAnchor && !story.isAnchor && (
             <ContextMenuItem onClick={onMakeAnchor}>
-              <Anchor className="mr-2 h-4 w-4" />
-              Make Anchor Story
+              <SparkleIcon className="h-4 w-4" />
+              Set as beacon
             </ContextMenuItem>
           )}
           {(onEdit || onMakeAnchor) && onDelete && <ContextMenuSeparator />}
@@ -256,8 +292,8 @@ export const StoryCard: React.FC<StoryCardProps> = ({
               onClick={onDelete}
               className="text-destructive focus:text-destructive"
             >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete Story
+              <Trash2Icon className="h-4 w-4" />
+              Delete story
             </ContextMenuItem>
           )}
         </ContextMenuContent>
