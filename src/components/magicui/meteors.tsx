@@ -54,7 +54,6 @@ export const Meteors = ({
     // Ensure minimum buffer time of 0.5s for very short durations
     const bufferTime = Math.max(1.5, meteor.duration * 0.2) // At least 1.5s or 20% of duration
     const totalTime = (meteor.delay + meteor.duration + bufferTime) * 1000
-    console.log(meteor)
     const timeout = setTimeout(() => {
       removeMeteor(meteor.id)
     }, totalTime)

@@ -177,10 +177,11 @@ export function calculateStoryPoints(
     ? anchorPointsIndex - index
     : anchorPointsIndex + index
 
-  const newPoints = FIBONACCI_NUMBERS[newIndex]
+  const newPoints =
+    FIBONACCI_NUMBERS[
+      // The new index can me min 0 and max FIBONACCI_NUMBERS.length - 1
+      Math.max(0, Math.min(FIBONACCI_NUMBERS.length - 1, newIndex))
+    ]
 
-  // Apply bounds checking
-  return isDecreasing
-    ? Math.max(newPoints, FIBONACCI_NUMBERS[0])
-    : Math.min(newPoints, FIBONACCI_NUMBERS.at(-1) ?? Number.MAX_SAFE_INTEGER)
+  return newPoints
 }
