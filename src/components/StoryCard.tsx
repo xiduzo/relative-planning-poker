@@ -134,9 +134,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   }, [story.position])
 
   const storyPoints = useMemo(() => {
-    const anchorStory = currentSession?.stories.find(s => s.isAnchor)
-
-    return calculateStoryPoints(story, anchorStory, anchorStoryPoints)
+    return calculateStoryPoints(story, anchorStoryPoints)
   }, [anchorStoryPoints, currentSession, story])
 
   const cardContent = (
@@ -202,7 +200,8 @@ export const StoryCard: React.FC<StoryCardProps> = ({
                     cardScore > 4 && ['bg-lime-500'],
                     cardScore > 5 && ['bg-green-500'],
                     cardScore > 7 && ['bg-emerald-500'],
-                    cardScore > 8 && ['bg-teal-500']
+                    cardScore > 8 && ['bg-teal-500'],
+                    cardScore > 9 && ['bg-cyan-500']
                   )}
                   aria-label={
                     anchorStoryPoints
@@ -235,10 +234,11 @@ export const StoryCard: React.FC<StoryCardProps> = ({
               <TooltipTrigger asChild>
                 <Badge
                   variant="outline"
-                  className="w-9 h-5"
+                  className="min-w-9 h-5"
                   aria-label="Anchor story indicator"
                 >
                   <SparkleIcon aria-hidden="true" />
+                  {anchorStoryPoints}
                 </Badge>
               </TooltipTrigger>
               <TooltipContent>

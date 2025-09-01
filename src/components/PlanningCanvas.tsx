@@ -207,7 +207,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
               style={{
                 ...percentagePosition,
                 transform: 'translate(-50%, -50%)',
-                zIndex: index,
+                zIndex: Math.min(index, 49), // need to be kept below 50 (for hover and dialogs)
               }}
             >
               <StoryCard

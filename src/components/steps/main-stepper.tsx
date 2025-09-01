@@ -40,11 +40,17 @@ export { useStepper, steps, utils }
 export function MainStepper() {
   const { code } = useParams<{ code: string }>()
 
+  const { currentSession } = usePlanningStore()
+
+  const anchorStoryPoints = currentSession?.anchorStoryPoints
+
   return (
     <>
       <Stepper.Provider
         className="flex flex-col gap-10 flex-1 container mx-auto py-4"
-        initialStep={code ? 'step-2' : 'step-1'}
+        initialStep={
+          code ? (anchorStoryPoints ? 'step-3' : 'step-2') : 'step-1'
+        }
       >
         <Navigation code={code} />
         <Panel />
@@ -74,9 +80,6 @@ function Navigation(props: { code?: string }) {
 function Panel() {
   const { switch: stepSwitch } = useStepper()
   const { openEditStoryDialog } = useDialogStore()
-  const { currentSession } = usePlanningStore()
-
-  const anchorStory = currentSession?.stories.find(s => s.isAnchor)
 
   return (
     <Stepper.Panel className="flex-1 flex flex-col">
@@ -108,6 +111,7 @@ function Controls() {
         'step-3': () => (
           <EstimateActions
             prev={prev}
+            anchorStoryPoints={currentSession?.anchorStoryPoints}
             setAnchorStoryPoints={setAnchorStoryPoints}
           />
         ),

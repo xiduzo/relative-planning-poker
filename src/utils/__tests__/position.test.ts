@@ -95,7 +95,7 @@ describe('Position utilities', () => {
     }
 
     it('should return anchor story points for anchor story', () => {
-      const result = calculateStoryPoints(anchorStory, anchorStory, 8)
+      const result = calculateStoryPoints(anchorStory, 8)
       expect(result).toBe(8)
     })
 
@@ -110,7 +110,7 @@ describe('Position utilities', () => {
         updatedAt: new Date(),
       }
 
-      const result = calculateStoryPoints(nearbyStory, anchorStory, 8)
+      const result = calculateStoryPoints(nearbyStory, 8)
       expect(result).toBeGreaterThan(0)
       expect([1, 2, 3, 5, 8, 13, 21, 34, 55, 89]).toContain(result)
     })
@@ -126,14 +126,14 @@ describe('Position utilities', () => {
         updatedAt: new Date(),
       }
 
-      const result = calculateStoryPoints(distantStory, anchorStory, 8)
+      const result = calculateStoryPoints(distantStory, 8)
       expect(result).toBeGreaterThan(0)
       expect([1, 2, 3, 5, 8, 13, 21, 34, 55, 89]).toContain(result)
 
-      // Distant stories should generally have higher story points
+      // Distant stories (high complexity) should get higher story points
+      // than nearby stories (low complexity) due to the weighted scoring system
       const nearbyResult = calculateStoryPoints(
         { ...distantStory, position: { x: 10, y: 10 } },
-        anchorStory,
         8
       )
       expect(result).toBeGreaterThanOrEqual(nearbyResult!)
@@ -150,9 +150,51 @@ describe('Position utilities', () => {
         updatedAt: new Date(),
       }
 
-      const result = calculateStoryPoints(edgeStory, anchorStory, 8)
+      const result = calculateStoryPoints(edgeStory, 8)
       expect(result).toBeGreaterThan(0)
       expect([1, 2, 3, 5, 8, 13, 21, 34, 55, 89]).toContain(result)
+    })
+
+    it('should map positions correctly: bottom-left = lowest, top-right = highest', () => {
+      const anchorStoryPoints = 8
+
+      // Bottom-left story (low complexity, low uncertainty)
+      const bottomLeftStory: Story = {
+        id: 'bottom-left',
+        title: 'Bottom Left Story',
+        description: 'Low complexity, low uncertainty',
+        position: { x: -80, y: -80 }, // Bottom-left area
+        isAnchor: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+
+      // Top-right story (high complexity, high uncertainty)
+      const topRightStory: Story = {
+        id: 'top-right',
+        title: 'Top Right Story',
+        description: 'High complexity, high uncertainty',
+        position: { x: 80, y: 80 }, // Top-right area
+        isAnchor: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+
+      const bottomLeftPoints = calculateStoryPoints(
+        bottomLeftStory,
+        anchorStoryPoints
+      )
+      const topRightPoints = calculateStoryPoints(
+        topRightStory,
+        anchorStoryPoints
+      )
+
+      // Both should be valid Fibonacci numbers
+      expect([1, 2, 3, 5, 8, 13, 21, 34, 55, 89]).toContain(bottomLeftPoints)
+      expect([1, 2, 3, 5, 8, 13, 21, 34, 55, 89]).toContain(topRightPoints)
+
+      // Bottom-left should have lower story points than top-right
+      expect(bottomLeftPoints).toBeLessThan(topRightPoints!)
     })
   })
 })

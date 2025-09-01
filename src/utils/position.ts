@@ -12,7 +12,6 @@ import {
 
 // Additional constants for position calculations
 export const ANCHOR_POSITION: Position2D = { x: 0, y: 0 }
-export const DEFAULT_SPACING = 10
 const ONE_HUNDRED_PERCENT = 100
 const MAX_SCORE = 10
 const BASE_SCORE = MAX_SCORE / 2
@@ -68,7 +67,7 @@ function calculateAxisScore(value: number, isLowerBetter: boolean): number {
 /**
  * Calculate total exponential score for a position
  * @param position - The 2D position
- * @returns Total score (0 to 10, where 5 is neutral)
+ * @returns Total score (0 to 10, where 5 is neutral, 0 is worst, 10 is best)
  */
 export function calculatePositionScore(position: Position2D): number {
   // X-axis: lower is better (complexity)
@@ -135,53 +134,69 @@ export function adjustStoriesRelativeToNewAnchor(
 }
 
 /**
- * Calculate story points for a story based on its distance from the anchor story
+ * Calculate story points for a story based on its position relative to the anchor
  * @param story - The story to calculate points for
- * @param anchorStory - The anchor story
  * @param anchorStoryPoints - The story points assigned to the anchor story
  * @returns The calculated story points (Fibonacci number)
  */
 export function calculateStoryPoints(
   story: Story,
-  anchorStory?: Story | null,
   anchorStoryPoints: FibonacciNumber | null = null
 ): number | null {
-  if (!anchorStory) return null
   if (!anchorStoryPoints) return null
-  if (story.id === anchorStory.id) return anchorStoryPoints
 
-  const score = calculatePositionScore(story.position)
+  // If this is the anchor story, return the assigned story points
+  if (story.isAnchor) return anchorStoryPoints
 
-  // if the score is > BASE SCORE, we need to scale the points up
-  // if the score is < BASE SCORE, we need to scale the points down
+  // Find the anchor story's position in the Fibonacci sequence
+  const anchorIndex = FIBONACCI_NUMBERS.indexOf(anchorStoryPoints)
+  if (anchorIndex === -1) {
+    throw new Error(
+      `Anchor story points ${anchorStoryPoints} not found in Fibonacci sequence`
+    )
+  }
 
-  const anchorPointsIndex = FIBONACCI_NUMBERS.indexOf(anchorStoryPoints)
+  // Create a custom scoring system for this coordinate system:
+  // - Lower X (left) = good (lower complexity) → lower score
+  // - Higher Y (top) = good (less uncertainty) → lower score
+  // - Higher X (right) = bad (higher complexity) → higher score
+  // - Lower Y (bottom) = bad (more uncertainty) → higher score
 
-  if (anchorPointsIndex === -1) throw Error('Anchor story points not found')
+  // Normalize X and Y to 0-1 range where 0 = good, 1 = bad
+  const xScore = (story.position.x + POSITION_RANGE / 2) / POSITION_RANGE // -100→0 (good), 100→1 (bad)
+  const yScore = (POSITION_RANGE / 2 - story.position.y) / POSITION_RANGE // 100→0 (good), -100→1 (bad)
 
-  const RELATIVE_SCORE_MIN = 1.25
-  const relativeScore = BASE_SCORE - score
-  const relativeScorePercentage =
-    ((relativeScore - RELATIVE_SCORE_MIN) / BASE_SCORE) * 100
+  // Combine scores: higher total score = worse position = higher story points
+  // Give complexity (X) more weight than uncertainty (Y) since complexity has more impact on story points
+  const COMPLEXITY_WEIGHT = 0.7
+  const UNCERTAINTY_WEIGHT = 0.3
+  const positionScore = xScore * COMPLEXITY_WEIGHT + yScore * UNCERTAINTY_WEIGHT // 0 = best, 1 = worst
 
-  // Calculate the direction and available range
-  const isDecreasing = relativeScorePercentage <= 0
-  const availableIndexes = isDecreasing
-    ? anchorPointsIndex
-    : FIBONACCI_NUMBERS.length - anchorPointsIndex
+  // Calculate the position score (0-1) for the anchor story (should be at 0,0)
+  const anchorScore = (0 + POSITION_RANGE / 2) / POSITION_RANGE // (0 + 100) / 200 = 0.5*
 
-  const index = Math.floor(
-    (Math.abs(relativeScorePercentage) * availableIndexes) / 100
+  // Calculate the difference in scores
+  // Higher position scores (worse positions) should result in higher story points
+  const scoreDifference = positionScore - anchorScore
+
+  // Convert score difference to percentage change (score range is 0-1)
+  const percentageChange = scoreDifference * ONE_HUNDRED_PERCENT
+
+  // For every 10% change, move 1 stage up or down the Fibonacci ladder
+  // Positive difference (worse position) moves up, negative difference (better position) moves down
+  const PERCENTAGE_CHANGE_PER_STAGE = 10
+  const fibonacciStagesToMove = Math.round(
+    percentageChange / PERCENTAGE_CHANGE_PER_STAGE
   )
-  const newIndex = isDecreasing
-    ? anchorPointsIndex - index
-    : anchorPointsIndex + index
 
-  const newPoints =
-    FIBONACCI_NUMBERS[
-      // The new index can me min 0 and max FIBONACCI_NUMBERS.length - 1
-      Math.max(0, Math.min(FIBONACCI_NUMBERS.length - 1, newIndex))
-    ]
+  // Calculate the new index
+  const newIndex = anchorIndex + fibonacciStagesToMove
 
-  return newPoints
+  // Ensure the index is within bounds
+  const clampedIndex = Math.max(
+    0,
+    Math.min(FIBONACCI_NUMBERS.length - 1, newIndex)
+  )
+
+  return FIBONACCI_NUMBERS[clampedIndex]
 }

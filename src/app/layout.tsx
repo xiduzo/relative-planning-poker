@@ -44,7 +44,7 @@ export default function RootLayout({
           </div>
         </header>
 
-        <main className="flex-1 flex">{children}</main>
+        <main className="flex-1 flex overflow-hidden">{children}</main>
         <Toaster position="bottom-right" />
         <div className="absolute inset-0 overflow-hidden -z-50">
           <Meteors

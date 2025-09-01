@@ -5,15 +5,10 @@ import { PlanningCanvas } from '../PlanningCanvas'
 import { Button } from '../ui/button'
 import { ArrowLeftIcon, BookCheckIcon, Tally5Icon } from 'lucide-react'
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group'
-import {
-  FIBONACCI_NUMBERS,
-  FibonacciNumber,
-  PlanningSessionSchema,
-} from '@/types'
+import { FIBONACCI_NUMBERS, FibonacciNumber } from '@/types'
 
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -21,7 +16,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '../ui/drawer'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { HelpCircle } from 'lucide-react'
 import {
   Tooltip,
@@ -41,6 +36,7 @@ import {
   FormControl,
   FormMessage,
 } from '../ui/form'
+import { cn } from '@/lib/utils'
 
 export function Estimate() {
   return (
@@ -60,9 +56,10 @@ type EstimateForm = z.infer<typeof schema>
 
 export function EstimateActions(props: {
   prev: () => void
+  anchorStoryPoints?: FibonacciNumber | null
   setAnchorStoryPoints: (points: FibonacciNumber | null) => void
 }) {
-  const [drawerOpen, setDrawerOpen] = useState(true)
+  const [drawerOpen, setDrawerOpen] = useState(!props.anchorStoryPoints)
 
   const form = useForm<EstimateForm>({
     resolver: zodResolver(schema),
@@ -70,10 +67,6 @@ export function EstimateActions(props: {
       anchorStoryPoints: undefined,
     },
   })
-
-  useEffect(() => {
-    props.setAnchorStoryPoints(null) // reset the anchor story points
-  }, [props.setAnchorStoryPoints])
 
   return (
     <section className="flex items-center justify-center gap-4">
@@ -87,17 +80,14 @@ export function EstimateActions(props: {
         <ArrowLeftIcon className="w-4 h-4" />
         Back to the plan
       </Button>
-      <Drawer
-        open={drawerOpen}
-        onOpenChange={open => {
-          setDrawerOpen(open)
-          form.reset()
-          if (!open) return
-          props.setAnchorStoryPoints(null)
-        }}
-      >
+      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerTrigger asChild>
-          <Button>
+          <Button
+            onClick={() => {
+              form.reset()
+              props.setAnchorStoryPoints(null)
+            }}
+          >
             <Tally5Icon className="w-4 h-4" />
             Estimate beacon
           </Button>
@@ -119,7 +109,7 @@ export function EstimateActions(props: {
                     </p>
                     <p className="mt-1">
                       If your beacon story has very low (1-3) or high (21+)
-                      points, consider promoting a different story as the beacon
+                      points, consider setting a different story as the beacon
                       for better relative estimation across all stories.
                     </p>
                   </TooltipContent>
@@ -164,7 +154,10 @@ export function EstimateActions(props: {
                           <ToggleGroupItem
                             key={number}
                             value={number.toString()}
-                            className="w-12 h-12 text-sm font-bold"
+                            className={cn([
+                              'w-12 h-12 text-sm',
+                              [5, 8, 13].includes(number) && 'font-bold',
+                            ])}
                           >
                             {number}
                           </ToggleGroupItem>
