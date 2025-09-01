@@ -33,6 +33,8 @@ import {
 } from '@/types'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { getRandomItem } from '@/utils/array'
+import { getErrorMessage } from '@/utils/validation'
 
 const formSchema = CreateStoryInputSchema
 
@@ -98,8 +100,9 @@ export function StoryDialog() {
       form.reset()
       closeStoryDialog()
     } catch (error) {
-      console.error('Failed to save story:', error)
-      // You could add toast notification here
+      toast.error('Failed to save story', {
+        description: getErrorMessage(error),
+      })
     }
   }
 
@@ -120,17 +123,14 @@ export function StoryDialog() {
     closeStoryDialog()
   }
 
-  const titlePlaceholder = useMemo(() => {
-    return titlePlaceholders[
-      Math.floor(Math.random() * titlePlaceholders.length)
-    ]
-  }, [isStoryDialogOpen])
-
-  const descriptionPlaceholder = useMemo(() => {
-    return descriptionPlaceholders[
-      Math.floor(Math.random() * descriptionPlaceholders.length)
-    ]
-  }, [isStoryDialogOpen])
+  const titlePlaceholder = useMemo(
+    () => getRandomItem(titlePlaceholders),
+    [isStoryDialogOpen]
+  )
+  const descriptionPlaceholder = useMemo(
+    () => getRandomItem(descriptionPlaceholders),
+    [isStoryDialogOpen]
+  )
 
   const isEditMode = dialogMode === 'edit'
   const dialogTitle = isEditMode ? 'Edit story' : 'Add new story'

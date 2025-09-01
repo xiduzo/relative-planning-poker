@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -15,6 +15,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -22,13 +23,14 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
 import { usePlanningStore } from '@/stores/planning-store'
-import { generateSessionId } from '@/utils/id'
+import { generateSessionId, sessionIdToReadableFormat } from '@/utils/id'
 import { PlanningSessionSchema } from '@/types'
 import { useStepper } from './main-stepper'
 import { toast } from 'sonner'
@@ -41,6 +43,7 @@ import {
   CardTitle,
 } from '../ui/card'
 import { useRouter } from 'next/navigation'
+import { getRandomItem } from '@/utils/array'
 
 const joinSessionSchema = PlanningSessionSchema.pick({
   code: true,
@@ -166,14 +169,16 @@ export function Session() {
         {Object.values(sessions)
           .sort(
             (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           )
           .slice(0, 6)
           .map(session => (
-            <Card key={session.id} className="col-span-1">
+            <Card key={session.code} className="col-span-1">
               <CardHeader>
                 <CardTitle>{session.name}</CardTitle>
-                <CardDescription>Session code: {session.code}</CardDescription>
+                <CardDescription>
+                  Session code: {sessionIdToReadableFormat(session.code)}
+                </CardDescription>
                 <CardAction>
                   <Button
                     variant="outline"
@@ -197,6 +202,19 @@ const createSessionSchema = PlanningSessionSchema.pick({
 })
 type CreateSessionForm = z.infer<typeof createSessionSchema>
 
+const sessionNamePlaceholders = [
+  'Q1 Sprint 3',
+  'User Authentication',
+  'Payment Integration',
+  'Mobile App Features',
+  'E-commerce Platform',
+  'API Performance',
+  'Dashboard Development',
+  'Search Functionality',
+  'Notification System',
+  'Admin Panel',
+]
+
 function CreateSessionDialog() {
   const [isCreating, setIsCreating] = useState(false)
   const { next, prev } = useStepper()
@@ -209,6 +227,11 @@ function CreateSessionDialog() {
       name: '',
     },
   })
+
+  const sessionNamePlaceholder = useMemo(
+    () => getRandomItem(sessionNamePlaceholders),
+    [isCreating]
+  )
 
   const handleCreateSession = (data: CreateSessionForm) => {
     const sessionCode = generateSessionId()
@@ -247,6 +270,10 @@ function CreateSessionDialog() {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create new session</DialogTitle>
+          <DialogDescription>
+            Kick off a collaborative planning session with your team to estimate
+            story points and plan your next sprint with confidence.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -259,8 +286,12 @@ function CreateSessionDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Session name</FormLabel>
+                  <FormDescription>
+                    E.g., Sprint 3, User Authentication, Payment Integration,
+                    etc.
+                  </FormDescription>
                   <FormControl>
-                    <Input placeholder="Enter session name" {...field} />
+                    <Input placeholder={sessionNamePlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -8,11 +8,11 @@
  */
 export function generateId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
+    return crypto.randomUUID()
   }
-  
+
   // Fallback for environments without crypto.randomUUID
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
 /**
@@ -20,12 +20,25 @@ export function generateId(): string {
  * Uses uppercase letters and numbers, avoiding confusing characters
  */
 export function generateSessionId(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excludes I, O, 0, 1
-  let result = '';
-  
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // Excludes I, O, 0, 1
+  let result = ''
+
   for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
   }
-  
-  return result;
+
+  return result
+}
+
+/**
+ * Converts a session ID (XXXXXX) to a readable format (XXX-XXX)
+ * @param sessionId - The session ID to convert to readable format
+ * @returns The readable format of the session ID
+ */
+export function sessionIdToReadableFormat(sessionId: string): string {
+  return (
+    sessionId.toUpperCase().slice(0, 3) +
+    '-' +
+    sessionId.toUpperCase().slice(3, 6)
+  )
 }

@@ -232,7 +232,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
                   Mission control ready...
                 </p>
                 <p className="text-sm text-muted-foreground/70">
-                  Deploy your beacon story to begin navigation
+                  Deploy your beacon story to start exploring
                 </p>
               </div>
               <Button onClick={openAddStoryDialog} size="lg">

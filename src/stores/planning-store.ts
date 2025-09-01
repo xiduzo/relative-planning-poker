@@ -65,7 +65,6 @@ export const usePlanningStore = create<PlanningStore>()(
       createSession: (name: string, code: string) => {
         const now = new Date()
         const sessionData = {
-          id: generateId(),
           name: name,
           code: code,
           stories: [],
@@ -80,7 +79,7 @@ export const usePlanningStore = create<PlanningStore>()(
 
         set({
           currentSession: session,
-          sessions: { ...get().sessions, [session.id]: session },
+          sessions: { ...get().sessions, [session.code]: session },
         })
       },
 
@@ -159,8 +158,7 @@ export const usePlanningStore = create<PlanningStore>()(
 
         const newStory: Story = {
           id: generateId(),
-          title: input.title.trim(),
-          description: input.description.trim(),
+          ...input,
           position: ANCHOR_POSITION, // Start at center (anchor position)
           isAnchor: isFirstStory,
           createdAt: now,
@@ -182,7 +180,10 @@ export const usePlanningStore = create<PlanningStore>()(
 
         set({
           currentSession: updatedSession,
-          sessions: { ...get().sessions, [updatedSession.id]: updatedSession },
+          sessions: {
+            ...get().sessions,
+            [updatedSession.code]: updatedSession,
+          },
         })
       },
 
@@ -203,18 +204,12 @@ export const usePlanningStore = create<PlanningStore>()(
         updatedStories[storyIndex] = {
           ...updatedStories[storyIndex],
           ...updates,
-          title: updates.title?.trim() || updatedStories[storyIndex].title,
-          description:
-            updates.description?.trim() ||
-            updatedStories[storyIndex].description,
+          createdAt: new Date(updatedStories[storyIndex].createdAt),
           updatedAt: now,
         }
 
         // Validate the updated story
-        const storyValidation = StorySchema.safeParse(
-          updatedStories[storyIndex]
-        )
-        if (!storyValidation.success) throw storyValidation.error
+        StorySchema.parse(updatedStories[storyIndex])
 
         const updatedSession: PlanningSession = {
           ...currentSession,
@@ -224,7 +219,10 @@ export const usePlanningStore = create<PlanningStore>()(
 
         set({
           currentSession: updatedSession,
-          sessions: { ...get().sessions, [updatedSession.id]: updatedSession },
+          sessions: {
+            ...get().sessions,
+            [updatedSession.code]: updatedSession,
+          },
         })
       },
 
@@ -263,7 +261,7 @@ export const usePlanningStore = create<PlanningStore>()(
 
         set({
           currentSession: updatedSession,
-          sessions: { [updatedSession.id]: updatedSession },
+          sessions: { [updatedSession.code]: updatedSession },
         })
       },
 
@@ -314,7 +312,10 @@ export const usePlanningStore = create<PlanningStore>()(
 
         set({
           currentSession: updatedSession,
-          sessions: { ...get().sessions, [updatedSession.id]: updatedSession },
+          sessions: {
+            ...get().sessions,
+            [updatedSession.code]: updatedSession,
+          },
         })
       },
 
@@ -351,7 +352,7 @@ export const usePlanningStore = create<PlanningStore>()(
 
         set({
           currentSession: updatedSession,
-          sessions: { [updatedSession.id]: updatedSession },
+          sessions: { [updatedSession.code]: updatedSession },
         })
       },
 
@@ -371,7 +372,10 @@ export const usePlanningStore = create<PlanningStore>()(
 
         set({
           currentSession: updatedSession,
-          sessions: { ...get().sessions, [updatedSession.id]: updatedSession },
+          sessions: {
+            ...get().sessions,
+            [updatedSession.code]: updatedSession,
+          },
         })
       },
 

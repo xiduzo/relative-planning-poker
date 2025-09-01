@@ -119,7 +119,7 @@ describe('PlanningStore Integration', () => {
 
     // Simulate loading from localStorage
     const sessionData = {
-      [originalSession.id]: {
+      [originalSession.code]: {
         ...originalSession,
         createdAt: originalSession.createdAt.toISOString(),
         lastModified: originalSession.lastModified.toISOString(),
@@ -135,13 +135,13 @@ describe('PlanningStore Integration', () => {
 
     // Clear current session and load from storage
     usePlanningStore.setState({ currentSession: null })
-    const loadResult = store.loadSession(originalSession.id)
+    const loadResult = store.loadSession(originalSession.code)
 
     expect(loadResult).toBe(true)
 
     const { currentSession } = usePlanningStore.getState()
     expect(currentSession).toBeDefined()
-    expect(currentSession?.id).toBe(originalSession.id)
+    expect(currentSession?.code).toBe(originalSession.code)
     expect(currentSession?.name).toBe('Persistence Test')
     expect(currentSession?.stories).toHaveLength(2)
     expect(currentSession?.stories[0].title).toBe('Story 1')

@@ -46,7 +46,6 @@ describe(usePlanningStore.name, () => {
       expect(currentSession).toBeDefined()
       expect(currentSession?.name).toBe('Test Session')
       expect(currentSession?.code).toBe('ABC123')
-      expect(currentSession?.id).toBe('test-uuid-123')
       expect(currentSession?.stories).toEqual([])
       expect(currentSession?.anchorStoryId).toBeNull()
     })
@@ -71,21 +70,21 @@ describe(usePlanningStore.name, () => {
   describe('loadSession', () => {
     it('should load existing session from memory', () => {
       const testSession = createTestSession({
-        id: 'session-123',
+        code: 'ABC123',
         name: 'Loaded Session',
       })
 
       // Add session to store's sessions object
       usePlanningStore.setState({
-        sessions: { 'session-123': testSession },
+        sessions: { ABC123: testSession },
       })
 
       const store = usePlanningStore.getState()
-      const result = store.loadSession('session-123')
+      const result = store.loadSession('ABC123')
 
       expect(result).toBe(true)
       const { currentSession } = usePlanningStore.getState()
-      expect(currentSession?.id).toBe('session-123')
+      expect(currentSession?.code).toBe('ABC123')
       expect(currentSession?.name).toBe('Loaded Session')
     })
 
@@ -102,7 +101,6 @@ describe(usePlanningStore.name, () => {
     it('should handle invalid session data gracefully', () => {
       // Add an invalid session to the store
       const invalidSession = {
-        id: 'invalid-session',
         name: '', // Invalid: empty name
         code: 'INVALID',
         stories: [],
@@ -125,7 +123,7 @@ describe(usePlanningStore.name, () => {
 
   describe('clearSession', () => {
     it('should clear current session', () => {
-      const testSession = createTestSession({ id: 'session-123' })
+      const testSession = createTestSession({ code: 'session-123' })
       usePlanningStore.setState({ currentSession: testSession })
 
       const store = usePlanningStore.getState()
@@ -180,20 +178,6 @@ describe(usePlanningStore.name, () => {
       expect(currentSession?.anchorStoryId).toBe('anchor-1')
     })
 
-    it('should trim story title and description', () => {
-      const store = usePlanningStore.getState()
-      const storyInput: CreateStoryInput = {
-        title: '  Test Story  ',
-        description: '  Test description  ',
-      }
-
-      store.addStory(storyInput)
-
-      const { currentSession } = usePlanningStore.getState()
-      expect(currentSession?.stories[0].title).toBe('Test Story')
-      expect(currentSession?.stories[0].description).toBe('Test description')
-    })
-
     it('should throw error when no active session', () => {
       usePlanningStore.setState({ currentSession: null })
 
@@ -230,19 +214,6 @@ describe(usePlanningStore.name, () => {
       store.updateStory('story-1', {
         title: 'Updated Title',
         description: 'Updated description',
-      })
-
-      const { currentSession } = usePlanningStore.getState()
-      expect(currentSession?.stories[0].title).toBe('Updated Title')
-      expect(currentSession?.stories[0].description).toBe('Updated description')
-    })
-
-    it('should trim updated values', () => {
-      const store = usePlanningStore.getState()
-
-      store.updateStory('story-1', {
-        title: '  Updated Title  ',
-        description: '  Updated description  ',
       })
 
       const { currentSession } = usePlanningStore.getState()

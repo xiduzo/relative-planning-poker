@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { generateId } from '@/utils/id'
 import React, { useEffect, useState, useCallback, useRef } from 'react'
 
 interface MeteorsProps {
@@ -36,7 +37,7 @@ export const Meteors = ({
 
   const generateMeteor = useCallback(
     (): Meteor => ({
-      id: Math.random().toString(36).substr(2, 9),
+      id: generateId(),
       angle: -angle + (Math.random() - 0.5) * 5,
       left: Math.floor(
         Math.random() *

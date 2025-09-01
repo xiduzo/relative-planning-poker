@@ -82,7 +82,6 @@ export const ParticipantSchema = z.object({
 
 export const PlanningSessionSchema = z
   .object({
-    id: z.string().trim().min(1, 'Session ID is required'),
     name: z
       .string()
       .trim()
