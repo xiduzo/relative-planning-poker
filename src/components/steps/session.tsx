@@ -162,8 +162,8 @@ export function Session() {
         <CreateSessionDialog />
       </div>
 
-      <section className="w-full grid grid-cols-3 gap-4">
-        <h2 className="text-lg text-start col-span-3 font-bold mt-12">
+      <section className="w-full grid grid-cols-6 gap-4">
+        <h2 className="text-lg text-start col-span-6 font-bold mt-12">
           Your recent sessions
         </h2>
         {Object.values(sessions)
@@ -173,7 +173,10 @@ export function Session() {
           )
           .slice(0, 6)
           .map(session => (
-            <Card key={session.code} className="col-span-1">
+            <Card
+              key={session.code}
+              className="lg:col-span-2 md:col-span-3 col-span-6"
+            >
               <CardHeader>
                 <CardTitle>{session.name}</CardTitle>
                 <CardDescription>
