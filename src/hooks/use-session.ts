@@ -11,7 +11,17 @@ import {
   setAnchorStory,
   setAnchorStoryPoints,
 } from '@/actions/session'
-import { CreateStoryInput } from '@/types'
+import { CreateStoryInput, PlanningSession, Story } from '@/types'
+
+function isPlanningSession(value: unknown): value is PlanningSession {
+  if (!value || typeof value !== 'object') return false
+  const s = value as Partial<PlanningSession>
+  return (
+    typeof s.id === 'string' &&
+    typeof s.code === 'string' &&
+    Array.isArray(s.stories)
+  )
+}
 
 // Query keys
 export const sessionKeys = {
@@ -90,13 +100,8 @@ export function useAddStory() {
       let sessionCode: string | undefined
 
       for (const [, sessionData] of sessionQueries) {
-        if (
-          sessionData &&
-          typeof sessionData === 'object' &&
-          'id' in sessionData &&
-          sessionData.id === sessionId
-        ) {
-          sessionCode = (sessionData as any).code
+        if (isPlanningSession(sessionData) && sessionData.id === sessionId) {
+          sessionCode = sessionData.code
           break
         }
       }
@@ -110,7 +115,8 @@ export function useAddStory() {
 
       // Optimistically update the session
       if (previousSession && typeof previousSession === 'object') {
-        const existingStories = (previousSession as any).stories ?? []
+        const existingStories =
+          (previousSession as PlanningSession).stories ?? []
         const isFirstStory =
           !Array.isArray(existingStories) || existingStories.length === 0
         const optimisticStory = {
@@ -124,8 +130,11 @@ export function useAddStory() {
         }
 
         const updatedSession = {
-          ...previousSession,
-          stories: [...(previousSession as any).stories, optimisticStory],
+          ...(previousSession as PlanningSession),
+          stories: [
+            ...((previousSession as PlanningSession).stories ?? []),
+            optimisticStory,
+          ],
         }
 
         queryClient.setQueryData(
@@ -147,7 +156,7 @@ export function useAddStory() {
       }
       toast.error(getErrorMessage(err))
     },
-    onSuccess: (response, variables, context, result) => {
+    onSuccess: (response, _variables, context) => {
       if ('data' in response) {
         queryClient.setQueryData(
           sessionKeys.byCode(context?.sessionCode ?? ''),
@@ -185,20 +194,16 @@ export function useUpdateStory() {
         queryKey: sessionKeys.all,
       })
       let sessionCode: string | undefined
-      let previousSession: any
+      let previousSession: PlanningSession | undefined
 
       for (const [, sessionData] of sessionQueries) {
-        if (
-          sessionData &&
-          typeof sessionData === 'object' &&
-          'stories' in sessionData
-        ) {
-          const stories = (sessionData as any).stories
+        if (isPlanningSession(sessionData)) {
+          const stories = sessionData.stories
           if (
             Array.isArray(stories) &&
-            stories.some((story: any) => story.id === storyId)
+            stories.some((story: Story) => story.id === storyId)
           ) {
-            sessionCode = (sessionData as any).code
+            sessionCode = sessionData.code
             previousSession = sessionData
             break
           }
@@ -209,11 +214,12 @@ export function useUpdateStory() {
 
       // Optimistically update the story
       const updatedSession = {
-        ...previousSession,
-        stories: (previousSession as any).stories.map((story: any) =>
-          story.id === storyId
-            ? { ...story, ...updates, updatedAt: new Date() }
-            : story
+        ...(previousSession as PlanningSession),
+        stories: (previousSession as PlanningSession).stories.map(
+          (story: Story) =>
+            story.id === storyId
+              ? { ...story, ...updates, updatedAt: new Date() }
+              : story
         ),
       }
 
@@ -265,20 +271,16 @@ export function useUpdateStoryPosition() {
         queryKey: sessionKeys.all,
       })
       let sessionCode: string | undefined
-      let previousSession: any
+      let previousSession: PlanningSession | undefined
 
       for (const [, sessionData] of sessionQueries) {
-        if (
-          sessionData &&
-          typeof sessionData === 'object' &&
-          'stories' in sessionData
-        ) {
-          const stories = (sessionData as any).stories
+        if (isPlanningSession(sessionData)) {
+          const stories = sessionData.stories
           if (
             Array.isArray(stories) &&
-            stories.some((story: any) => story.id === storyId)
+            stories.some((story: Story) => story.id === storyId)
           ) {
-            sessionCode = (sessionData as any).code
+            sessionCode = sessionData.code
             previousSession = sessionData
             break
           }
@@ -289,11 +291,12 @@ export function useUpdateStoryPosition() {
 
       // Optimistically update the story position
       const updatedSession = {
-        ...previousSession,
-        stories: (previousSession as any).stories.map((story: any) =>
-          story.id === storyId
-            ? { ...story, position, updatedAt: new Date() }
-            : story
+        ...(previousSession as PlanningSession),
+        stories: (previousSession as PlanningSession).stories.map(
+          (story: Story) =>
+            story.id === storyId
+              ? { ...story, position, updatedAt: new Date() }
+              : story
         ),
       }
 
@@ -338,20 +341,16 @@ export function useDeleteStory() {
         queryKey: sessionKeys.all,
       })
       let sessionCode: string | undefined
-      let previousSession: any
+      let previousSession: PlanningSession | undefined
 
       for (const [, sessionData] of sessionQueries) {
-        if (
-          sessionData &&
-          typeof sessionData === 'object' &&
-          'stories' in sessionData
-        ) {
-          const stories = (sessionData as any).stories
+        if (isPlanningSession(sessionData)) {
+          const stories = sessionData.stories
           if (
             Array.isArray(stories) &&
-            stories.some((story: any) => story.id === storyId)
+            stories.some((story: Story) => story.id === storyId)
           ) {
-            sessionCode = (sessionData as any).code
+            sessionCode = sessionData.code
             previousSession = sessionData
             break
           }
@@ -362,9 +361,9 @@ export function useDeleteStory() {
 
       // Optimistically remove the story
       const updatedSession = {
-        ...previousSession,
-        stories: (previousSession as any).stories.filter(
-          (story: any) => story.id !== storyId
+        ...(previousSession as PlanningSession),
+        stories: (previousSession as PlanningSession).stories.filter(
+          (story: Story) => story.id !== storyId
         ),
       }
 
@@ -416,16 +415,11 @@ export function useSetAnchorStory() {
         queryKey: sessionKeys.all,
       })
       let sessionCode: string | undefined
-      let previousSession: any
+      let previousSession: PlanningSession | undefined
 
       for (const [, sessionData] of sessionQueries) {
-        if (
-          sessionData &&
-          typeof sessionData === 'object' &&
-          'id' in sessionData &&
-          sessionData.id === sessionId
-        ) {
-          sessionCode = (sessionData as any).code
+        if (isPlanningSession(sessionData) && sessionData.id === sessionId) {
+          sessionCode = sessionData.code
           previousSession = sessionData
           break
         }
@@ -435,13 +429,15 @@ export function useSetAnchorStory() {
 
       // Optimistically update anchor story
       const updatedSession = {
-        ...previousSession,
+        ...(previousSession as PlanningSession),
         anchorStoryId: storyId,
-        stories: (previousSession as any).stories.map((story: any) => ({
-          ...story,
-          isAnchor: story.id === storyId,
-          // Position will be updated by server
-        })),
+        stories: (previousSession as PlanningSession).stories.map(
+          (story: Story) => ({
+            ...story,
+            isAnchor: story.id === storyId,
+            // Position will be updated by server
+          })
+        ),
       }
 
       queryClient.setQueryData(sessionKeys.byCode(sessionCode), updatedSession)
@@ -492,16 +488,11 @@ export function useSetAnchorStoryPoints() {
         queryKey: sessionKeys.all,
       })
       let sessionCode: string | undefined
-      let previousSession: any
+      let previousSession: PlanningSession | undefined
 
       for (const [, sessionData] of sessionQueries) {
-        if (
-          sessionData &&
-          typeof sessionData === 'object' &&
-          'id' in sessionData &&
-          sessionData.id === sessionId
-        ) {
-          sessionCode = (sessionData as any).code
+        if (isPlanningSession(sessionData) && sessionData.id === sessionId) {
+          sessionCode = sessionData.code
           previousSession = sessionData
           break
         }
@@ -511,7 +502,7 @@ export function useSetAnchorStoryPoints() {
 
       // Optimistically update anchor story points
       const updatedSession = {
-        ...previousSession,
+        ...(previousSession as PlanningSession),
         anchorStoryPoints: points,
       }
 

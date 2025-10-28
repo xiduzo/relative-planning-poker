@@ -4,7 +4,6 @@
  */
 
 import { create } from 'zustand'
-import { useSession } from '@/hooks/use-session'
 
 export interface PlanningStore {
   // State
@@ -15,7 +14,7 @@ export interface PlanningStore {
   clearSession: () => void
 }
 
-export const usePlanningStore = create<PlanningStore>()((set, get) => ({
+export const usePlanningStore = create<PlanningStore>()(set => ({
   currentSession: null,
   setCurrentSession: code => set({ currentSession: code }),
   clearSession: () => set({ currentSession: null }),

@@ -50,39 +50,26 @@ export const Meteors = ({
     [angle, maxDelay, minDelay, maxDuration, minDuration]
   )
 
-  const setupMeteorTimeout = useCallback((meteor: Meteor) => {
-    // The meteor should live for: delay + duration + buffer time
-    // Ensure minimum buffer time of 0.5s for very short durations
-    const bufferTime = Math.max(1.5, meteor.duration * 0.2) // At least 1.5s or 20% of duration
-    const totalTime = (meteor.delay + meteor.duration + bufferTime) * 1000
-    const timeout = setTimeout(() => {
-      removeMeteor(meteor.id)
-    }, totalTime)
-    timeoutsRef.current.set(meteor.id, timeout)
-  }, [])
+  const setupMeteorTimeout = useCallback(
+    (meteor: Meteor) => {
+      // The meteor should live for: delay + duration + buffer time
+      // Ensure minimum buffer time of 0.5s for very short durations
+      const bufferTime = Math.max(1.5, meteor.duration * 0.2) // At least 1.5s or 20% of duration
+      const totalTime = (meteor.delay + meteor.duration + bufferTime) * 1000
+      const timeout = setTimeout(() => {
+        setMeteors(prev => prev.filter(_meteor => _meteor.id !== meteor.id))
 
-  const spawnMeteor = useCallback(() => {
-    const newMeteor = generateMeteor()
+        // Spawn a new meteor to replace the removed one
+        setTimeout(() => {
+          const newMeteor = generateMeteor()
 
-    setMeteors(prev => [...prev, newMeteor])
-    setupMeteorTimeout(newMeteor)
-  }, [generateMeteor, setupMeteorTimeout])
-
-  const removeMeteor = useCallback(
-    (id: string) => {
-      // Clear the timeout for this meteor
-      const timeout = timeoutsRef.current.get(id)
-      if (timeout) {
-        clearTimeout(timeout)
-        timeoutsRef.current.delete(id)
-      }
-
-      setMeteors(prev => prev.filter(meteor => meteor.id !== id))
-
-      // Spawn a new meteor to replace the removed one
-      setTimeout(() => spawnMeteor(), Math.random() * 1000) // Random delay before spawning new meteor
+          setMeteors(prev => [...prev, newMeteor])
+          setupMeteorTimeout(newMeteor)
+        }, Math.random() * 1000) // Random delay before spawning new meteor
+      }, totalTime)
+      timeoutsRef.current.set(meteor.id, timeout)
     },
-    [spawnMeteor]
+    [generateMeteor]
   )
 
   // Initialize meteors
@@ -100,6 +87,7 @@ export const Meteors = ({
     // Cleanup function
     return () => {
       timeoutsRef.current.forEach(timeout => clearTimeout(timeout))
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       timeoutsRef.current.clear()
     }
   }, [number, generateMeteor, setupMeteorTimeout])

@@ -8,9 +8,7 @@ const connectionString = process.env.DATABASE_URL!
 // Limit pool size to 1 to avoid exhausting pooled connections in serverless/dev.
 // Ensure a singleton client in dev to prevent HMR from creating multiple pools.
 declare global {
-  // eslint-disable-next-line no-var
   var __pg_client__: ReturnType<typeof postgres> | undefined
-  // eslint-disable-next-line no-var
   var __drizzle_db__: ReturnType<typeof drizzle<typeof schema>> | undefined
 }
 
