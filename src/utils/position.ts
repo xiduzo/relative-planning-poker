@@ -27,6 +27,22 @@ export function normalizePosition2D(position: Position2D): Position2D {
 }
 
 /**
+ * Calculates the relative position of a story to an anchor story
+ * @param story - The story to calculate the relative position for
+ * @param anchorStory - The anchor story
+ * @returns The relative position
+ */
+export function positionRelativeToAnchor(
+  story: Story,
+  anchorStory: Story
+): Position2D {
+  return normalizePosition2D({
+    x: story.position.x - anchorStory.position.x,
+    y: story.position.y - anchorStory.position.y,
+  })
+}
+
+/**
  * Converts a 2D position to percentage coordinates for CSS positioning
  */
 export function positionToPercentage(position: Position2D): {
@@ -77,60 +93,6 @@ export function calculatePositionScore(position: Position2D): number {
   const yScore = calculateAxisScore(position.y, false)
 
   return xScore + yScore
-}
-
-/**
- * Adjusts story positions relative to a new anchor story
- * @param stories - Array of all stories
- * @param newAnchorStoryId - ID of the story to become the new anchor
- * @param anchorPosition - Position where the new anchor should be placed (defaults to 0,0)
- * @returns Array of stories with adjusted positions
- */
-export function adjustStoriesRelativeToNewAnchor(
-  stories: Story[],
-  newAnchorStoryId: string,
-  anchorPosition: Position2D = ANCHOR_POSITION
-): Story[] {
-  const currentAnchorStory = stories.find(s => s.isAnchor)
-  const now = new Date()
-
-  return stories.map(story => {
-    if (story.id === newAnchorStoryId) {
-      // This is the new anchor story - move it to the anchor position
-      return {
-        ...story,
-        position: anchorPosition,
-        isAnchor: true,
-        updatedAt: now,
-      }
-    }
-
-    if (!currentAnchorStory) {
-      // No previous anchor, keep current position but ensure isAnchor is false
-      return {
-        ...story,
-        isAnchor: false,
-        updatedAt: now,
-      }
-    }
-
-    // Calculate the relative position from the old anchor to this story
-    const relativeX = story.position.x - currentAnchorStory.position.x
-    const relativeY = story.position.y - currentAnchorStory.position.y
-
-    // Apply the same relative position from the new anchor
-    const newPosition = normalizePosition2D({
-      x: anchorPosition.x + relativeX,
-      y: anchorPosition.y + relativeY,
-    })
-
-    return {
-      ...story,
-      position: newPosition,
-      isAnchor: false,
-      updatedAt: now,
-    }
-  })
 }
 
 /**

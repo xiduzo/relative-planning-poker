@@ -2,6 +2,8 @@
  * ID generation utilities
  */
 
+import { SESSION_CODE_LENGTH } from '@/types'
+
 /**
  * Generates a unique ID using crypto.randomUUID if available,
  * falls back to a timestamp-based approach
@@ -23,7 +25,7 @@ export function generateSessionCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // Excludes I, O, 0, 1
   let result = ''
 
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < SESSION_CODE_LENGTH; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length))
   }
 

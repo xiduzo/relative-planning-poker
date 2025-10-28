@@ -7,7 +7,6 @@ import {
   normalizePosition2D,
   positionToPercentage,
   calculatePositionScore,
-  adjustStoriesRelativeToNewAnchor,
   calculateStoryPoints,
 } from '../position'
 import type { Story } from '@/types'
@@ -51,35 +50,6 @@ describe('Position utilities', () => {
     it('should calculate score for edge position', () => {
       const score = calculatePositionScore({ x: 100, y: 100 })
       expect(score).toBeGreaterThan(0)
-    })
-  })
-
-  describe('adjustStoriesRelativeToNewAnchor', () => {
-    it('should adjust story positions relative to new anchor', () => {
-      const stories: Story[] = [
-        {
-          id: '1',
-          title: 'Anchor',
-          description: '',
-          position: { x: 0, y: 0 },
-          isAnchor: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: '2',
-          title: 'Story 2',
-          description: '',
-          position: { x: 10, y: 10 },
-          isAnchor: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ]
-
-      const result = adjustStoriesRelativeToNewAnchor(stories, '2')
-      expect(result[1].isAnchor).toBe(true)
-      expect(result[0].isAnchor).toBe(false)
     })
   })
 

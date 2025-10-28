@@ -14,7 +14,8 @@ import { Plan, PlanActions } from './plan'
 import { useParams, useRouter } from 'next/navigation'
 import { useDialogStore, usePlanningStore } from '@/stores'
 import { useSession } from '@/hooks/use-session'
-import { useEffect } from 'react'
+import { useRecentSessions } from '@/hooks/use-recent-sessions'
+import { useEffect, useRef } from 'react'
 import {
   Empty,
   EmptyContent,
@@ -52,14 +53,24 @@ export function MainStepper() {
   const { code } = useParams<{ code: string }>()
   const { setCurrentSession } = usePlanningStore()
   const { push } = useRouter()
+  const { addRecentSession } = useRecentSessions()
+  const addedRecentSessionForIdRef = useRef<string | null>(null)
 
   // Load session data when code is provided
-  const { data, error } = useSession(code || '')
+  const { data, error } = useSession(code ?? '')
 
   // Update store when session data changes
   useEffect(() => {
     setCurrentSession(code)
   }, [code, setCurrentSession])
+
+  // Track recent sessions once per session id when session data is loaded
+  useEffect(() => {
+    if (!data?.id) return
+    if (addedRecentSessionForIdRef.current === data.id) return
+    addRecentSession(data)
+    addedRecentSessionForIdRef.current = data.id
+  }, [data?.id, addRecentSession, data])
 
   if (code && error) {
     return (

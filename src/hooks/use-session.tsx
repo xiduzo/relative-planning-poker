@@ -11,17 +11,38 @@ import {
   setAnchorStory,
   setAnchorStoryPoints,
 } from '@/actions/session'
-import { CreateStoryInput, PlanningSession, Story } from '@/types'
+import { CreateStoryInput, PlanningSession, SESSION_CODE_LENGTH } from '@/types'
+import { ANCHOR_POSITION, positionRelativeToAnchor } from '@/utils'
+import {
+  DraftingCompassIcon,
+  RocketIcon,
+  ShredderIcon,
+  SparkleIcon,
+  TelescopeIcon,
+} from 'lucide-react'
+import { getRandomItem } from '@/utils/array'
 
 function isPlanningSession(value: unknown): value is PlanningSession {
   if (!value || typeof value !== 'object') return false
-  const s = value as Partial<PlanningSession>
+  const session = value as Partial<PlanningSession>
   return (
-    typeof s.id === 'string' &&
-    typeof s.code === 'string' &&
-    Array.isArray(s.stories)
+    typeof session.id === 'string' &&
+    typeof session.code === 'string' &&
+    Array.isArray(session.stories)
   )
 }
+
+const successMessages = [
+  'Roger that',
+  'Got it',
+  'Understood',
+  'Affirmative',
+  'All set',
+  'Done',
+  'Confirmed',
+  'Accepted',
+  'Ready',
+]
 
 // Query keys
 export const sessionKeys = {
@@ -40,7 +61,7 @@ export function useSession(code: string) {
       }
       return result.data
     },
-    enabled: !!code,
+    enabled: !!code && code.length === SESSION_CODE_LENGTH,
     refetchInterval: 1 * 1000, // 10 seconds
   })
 }
@@ -64,7 +85,10 @@ export function useCreateSession() {
       if (data) {
         queryClient.setQueryData(sessionKeys.byCode(data.code), data)
       }
-      toast.success('Session created')
+      toast.success(getRandomItem(successMessages), {
+        description: 'Ready to launch!',
+        icon: <RocketIcon size={16} />,
+      })
     },
     onError: error => {
       toast.error(getErrorMessage(error))
@@ -111,19 +135,16 @@ export function useAddStory() {
       // Snapshot the previous value
       const previousSession = queryClient.getQueryData(
         sessionKeys.byCode(sessionCode)
-      )
+      ) as PlanningSession | undefined
 
       // Optimistically update the session
-      if (previousSession && typeof previousSession === 'object') {
-        const existingStories =
-          (previousSession as PlanningSession).stories ?? []
-        const isFirstStory =
-          !Array.isArray(existingStories) || existingStories.length === 0
+      if (isPlanningSession(previousSession)) {
+        const isFirstStory = previousSession.stories.length === 0
         const optimisticStory = {
           id: `temp-${Date.now()}`, // Temporary ID
           title: input.title,
-          description: input.description || '',
-          position: { x: 0, y: 0 }, // Will be set by server
+          description: input.description ?? '',
+          position: ANCHOR_POSITION, // Will be set by server
           isAnchor: isFirstStory, // True if no existing stories
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -147,13 +168,12 @@ export function useAddStory() {
       return { previousSession, sessionCode }
     },
     onError: (err, variables, context) => {
+      if (!context) return
       // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousSession && context?.sessionCode) {
-        queryClient.setQueryData(
-          sessionKeys.byCode(context.sessionCode),
-          context.previousSession
-        )
-      }
+      queryClient.setQueryData(
+        sessionKeys.byCode(context.sessionCode),
+        context.previousSession
+      )
       toast.error(getErrorMessage(err))
     },
     onSuccess: (response, _variables, context) => {
@@ -163,7 +183,10 @@ export function useAddStory() {
           response.data
         )
       }
-      toast.success('Story added')
+      toast.success(getRandomItem(successMessages), {
+        description: 'Story added',
+        icon: <SparkleIcon size={16} />,
+      })
     },
   })
 }
@@ -199,10 +222,7 @@ export function useUpdateStory() {
       for (const [, sessionData] of sessionQueries) {
         if (isPlanningSession(sessionData)) {
           const stories = sessionData.stories
-          if (
-            Array.isArray(stories) &&
-            stories.some((story: Story) => story.id === storyId)
-          ) {
+          if (stories.some(story => story.id === storyId)) {
             sessionCode = sessionData.code
             previousSession = sessionData
             break
@@ -214,12 +234,11 @@ export function useUpdateStory() {
 
       // Optimistically update the story
       const updatedSession = {
-        ...(previousSession as PlanningSession),
-        stories: (previousSession as PlanningSession).stories.map(
-          (story: Story) =>
-            story.id === storyId
-              ? { ...story, ...updates, updatedAt: new Date() }
-              : story
+        ...previousSession,
+        stories: previousSession.stories.map(story =>
+          story.id === storyId
+            ? { ...story, ...updates, updatedAt: new Date() }
+            : story
         ),
       }
 
@@ -228,19 +247,21 @@ export function useUpdateStory() {
       return { previousSession, sessionCode }
     },
     onError: (err, variables, context) => {
+      if (!context) return
       // Roll back on error
-      if (context?.previousSession && context?.sessionCode) {
-        queryClient.setQueryData(
-          sessionKeys.byCode(context.sessionCode),
-          context.previousSession
-        )
-      }
+      queryClient.setQueryData(
+        sessionKeys.byCode(context.sessionCode),
+        context.previousSession
+      )
       toast.error(getErrorMessage(err))
     },
     onSuccess: () => {
       // Invalidate to ensure we have the latest data
       queryClient.invalidateQueries({ queryKey: sessionKeys.all })
-      toast.success('Story updated')
+      toast.success(getRandomItem(successMessages), {
+        description: 'Story updated',
+        icon: <DraftingCompassIcon size={16} />,
+      })
     },
   })
 }
@@ -276,10 +297,7 @@ export function useUpdateStoryPosition() {
       for (const [, sessionData] of sessionQueries) {
         if (isPlanningSession(sessionData)) {
           const stories = sessionData.stories
-          if (
-            Array.isArray(stories) &&
-            stories.some((story: Story) => story.id === storyId)
-          ) {
+          if (stories.some(story => story.id === storyId)) {
             sessionCode = sessionData.code
             previousSession = sessionData
             break
@@ -291,12 +309,11 @@ export function useUpdateStoryPosition() {
 
       // Optimistically update the story position
       const updatedSession = {
-        ...(previousSession as PlanningSession),
-        stories: (previousSession as PlanningSession).stories.map(
-          (story: Story) =>
-            story.id === storyId
-              ? { ...story, position, updatedAt: new Date() }
-              : story
+        ...previousSession,
+        stories: previousSession.stories.map(story =>
+          story.id === storyId
+            ? { ...story, position, updatedAt: new Date() }
+            : story
         ),
       }
 
@@ -305,13 +322,12 @@ export function useUpdateStoryPosition() {
       return { previousSession, sessionCode }
     },
     onError: (err, variables, context) => {
+      if (!context) return
       // Roll back on error
-      if (context?.previousSession && context?.sessionCode) {
-        queryClient.setQueryData(
-          sessionKeys.byCode(context.sessionCode),
-          context.previousSession
-        )
-      }
+      queryClient.setQueryData(
+        sessionKeys.byCode(context.sessionCode),
+        context.previousSession
+      )
       toast.error(getErrorMessage(err))
     },
     onSuccess: () => {
@@ -346,10 +362,7 @@ export function useDeleteStory() {
       for (const [, sessionData] of sessionQueries) {
         if (isPlanningSession(sessionData)) {
           const stories = sessionData.stories
-          if (
-            Array.isArray(stories) &&
-            stories.some((story: Story) => story.id === storyId)
-          ) {
+          if (stories.some(story => story.id === storyId)) {
             sessionCode = sessionData.code
             previousSession = sessionData
             break
@@ -361,10 +374,8 @@ export function useDeleteStory() {
 
       // Optimistically remove the story
       const updatedSession = {
-        ...(previousSession as PlanningSession),
-        stories: (previousSession as PlanningSession).stories.filter(
-          (story: Story) => story.id !== storyId
-        ),
+        ...previousSession,
+        stories: previousSession.stories.filter(story => story.id !== storyId),
       }
 
       queryClient.setQueryData(sessionKeys.byCode(sessionCode), updatedSession)
@@ -372,19 +383,21 @@ export function useDeleteStory() {
       return { previousSession, sessionCode }
     },
     onError: (err, variables, context) => {
+      if (!context) return
       // Roll back on error
-      if (context?.previousSession && context?.sessionCode) {
-        queryClient.setQueryData(
-          sessionKeys.byCode(context.sessionCode),
-          context.previousSession
-        )
-      }
+      queryClient.setQueryData(
+        sessionKeys.byCode(context.sessionCode),
+        context.previousSession
+      )
       toast.error(getErrorMessage(err))
     },
     onSuccess: () => {
       // Invalidate to ensure we have the latest data
       queryClient.invalidateQueries({ queryKey: sessionKeys.all })
-      toast.success('Story deleted')
+      toast.success(getRandomItem(successMessages), {
+        description: 'Story deleted',
+        icon: <ShredderIcon size={16} />,
+      })
     },
   })
 }
@@ -429,35 +442,43 @@ export function useSetAnchorStory() {
 
       // Optimistically update anchor story
       const updatedSession = {
-        ...(previousSession as PlanningSession),
+        ...previousSession,
         anchorStoryId: storyId,
-        stories: (previousSession as PlanningSession).stories.map(
-          (story: Story) => ({
-            ...story,
-            isAnchor: story.id === storyId,
-            // Position will be updated by server
-          })
-        ),
+        stories: previousSession.stories.map(story => ({
+          ...story,
+          isAnchor: story.id === storyId,
+          // Position will be updated by server
+        })),
       }
 
       queryClient.setQueryData(sessionKeys.byCode(sessionCode), updatedSession)
 
       return { previousSession, sessionCode }
     },
-    onError: (err, variables, context) => {
-      // Roll back on error
-      if (context?.previousSession && context?.sessionCode) {
-        queryClient.setQueryData(
-          sessionKeys.byCode(context.sessionCode),
-          context.previousSession
-        )
-      }
+    onError: (err, _variables, context) => {
+      if (!context) return
+      queryClient.setQueryData(
+        sessionKeys.byCode(context.sessionCode),
+        context.previousSession
+      )
       toast.error(getErrorMessage(err))
     },
-    onSuccess: () => {
-      // Invalidate to ensure we have the latest data
+    onSuccess: (_response, variables, context) => {
+      const newAnchorStory = context?.previousSession?.stories.find(
+        story => story.id === variables.storyId
+      )
+      if (!newAnchorStory) return
+
+      context?.previousSession?.stories.forEach(async story => {
+        if (story.id === variables.storyId) return
+        const relativePosition = positionRelativeToAnchor(story, newAnchorStory)
+        updateStoryPosition(story.id, relativePosition)
+      })
       queryClient.invalidateQueries({ queryKey: sessionKeys.all })
-      toast.success('Anchor story set')
+      toast.success(getRandomItem(successMessages), {
+        description: 'Anchor story set',
+        icon: <SparkleIcon size={16} />,
+      })
     },
   })
 }
@@ -502,7 +523,7 @@ export function useSetAnchorStoryPoints() {
 
       // Optimistically update anchor story points
       const updatedSession = {
-        ...(previousSession as PlanningSession),
+        ...previousSession,
         anchorStoryPoints: points,
       }
 
@@ -511,18 +532,20 @@ export function useSetAnchorStoryPoints() {
       return { previousSession, sessionCode }
     },
     onError: (err, variables, context) => {
+      if (!context) return
       // Roll back on error
-      if (context?.previousSession && context?.sessionCode) {
-        queryClient.setQueryData(
-          sessionKeys.byCode(context.sessionCode),
-          context.previousSession
-        )
-      }
+      queryClient.setQueryData(
+        sessionKeys.byCode(context.sessionCode),
+        context.previousSession
+      )
     },
     onSuccess: () => {
       // Invalidate to ensure we have the latest data
       queryClient.invalidateQueries({ queryKey: sessionKeys.all })
-      toast.success('Anchor story points updated')
+      toast.success(getRandomItem(successMessages), {
+        description: 'Anchor story points updated',
+        icon: <TelescopeIcon size={16} />,
+      })
     },
   })
 }

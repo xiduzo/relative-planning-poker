@@ -215,7 +215,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
           return (
             <div
               key={story.id}
-              className="absolute hover:!z-50"
+              className="absolute hover:!z-50 transition-all duration-150"
               style={{
                 ...percentagePosition,
                 transform: 'translate(-50%, -50%)',
