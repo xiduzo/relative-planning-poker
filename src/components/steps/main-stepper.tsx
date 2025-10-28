@@ -1,15 +1,29 @@
 'use client'
 
 import { defineStepper } from '../stepper'
-import { RectangleEllipsisIcon, SparkleIcon, Tally5Icon } from 'lucide-react'
+import {
+  FolderIcon,
+  RectangleEllipsisIcon,
+  SparkleIcon,
+  Tally5Icon,
+} from 'lucide-react'
 
 import { Session, SessionActions } from './session'
 import { Estimate, EstimateActions } from './estimate'
 import { Plan, PlanActions } from './plan'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useDialogStore, usePlanningStore } from '@/stores'
 import { useSession } from '@/hooks/use-session'
 import { useEffect } from 'react'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '../ui/empty'
+import { Button } from '../ui/button'
 
 const { Stepper, useStepper, steps, utils } = defineStepper(
   {
@@ -36,43 +50,33 @@ export { useStepper, steps, utils }
 
 export function MainStepper() {
   const { code } = useParams<{ code: string }>()
-  const { currentSession, setCurrentSession } = usePlanningStore()
+  const { setCurrentSession } = usePlanningStore()
+  const { push } = useRouter()
 
   // Load session data when code is provided
-  const { data: sessionData, isLoading, error } = useSession(code || '')
+  const { data, error } = useSession(code || '')
 
   // Update store when session data changes
   useEffect(() => {
-    if (sessionData) {
-      setCurrentSession(sessionData)
-    }
-  }, [sessionData, setCurrentSession])
+    setCurrentSession(code)
+  }, [code, setCurrentSession])
 
-  const anchorStoryPoints = currentSession?.anchorStoryPoints
-
-  // Show loading state while fetching session
-  if (code && isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading session...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Show error state if session not found
   if (code && error) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold">Session not found</h2>
-          <p className="text-muted-foreground">
-            The session code &quot;{code}&quot; does not exist.
-          </p>
-        </div>
-      </div>
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <FolderIcon />
+          </EmptyMedia>
+          <EmptyTitle>Session not found</EmptyTitle>
+          <EmptyDescription>Session {code} does not exist</EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <div className="flex gap-2">
+            <Button onClick={() => push('/')}>Go back</Button>
+          </div>
+        </EmptyContent>
+      </Empty>
     )
   }
 
@@ -81,7 +85,7 @@ export function MainStepper() {
       <Stepper.Provider
         className="flex flex-col gap-10 flex-1 container mx-auto py-4"
         initialStep={
-          code ? (anchorStoryPoints ? 'step-3' : 'step-2') : 'step-1'
+          code ? (data?.anchorStoryPoints ? 'step-3' : 'step-2') : 'step-1'
         }
       >
         <Navigation code={code} />
@@ -129,6 +133,8 @@ function Controls() {
   const { openAddStoryDialog } = useDialogStore()
   const { currentSession } = usePlanningStore()
 
+  const { data } = useSession(currentSession ?? '')
+
   return (
     <Stepper.Controls className="flex items-center justify-center">
       {stepSwitch({
@@ -136,15 +142,15 @@ function Controls() {
         'step-2': () => (
           <PlanActions
             onAddStory={openAddStoryDialog}
-            stories={currentSession?.stories ?? []}
+            stories={data?.stories ?? []}
             next={next}
           />
         ),
         'step-3': () => (
           <EstimateActions
             prev={prev}
-            anchorStoryPoints={currentSession?.anchorStoryPoints as null}
-            sessionId={currentSession?.id}
+            anchorStoryPoints={data?.anchorStoryPoints as null}
+            sessionId={data?.id}
           />
         ),
       })}

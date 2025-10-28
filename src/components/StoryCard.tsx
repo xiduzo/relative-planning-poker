@@ -29,6 +29,7 @@ import { usePlanningStore } from '@/stores/planning-store'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { BorderBeam } from './magicui/border-beam'
+import { useSession } from '@/hooks/use-session'
 
 const scoreFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
@@ -60,7 +61,8 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   enableDrag = true,
 }) => {
   const currentSession = usePlanningStore(state => state.currentSession)
-  const anchorStoryPoints = currentSession?.anchorStoryPoints
+  const { data } = useSession(currentSession ?? '')
+  const anchorStoryPoints = data?.anchorStoryPoints
 
   // Anchor stories cannot be dragged
   const canDrag = enableDrag && !story.isAnchor

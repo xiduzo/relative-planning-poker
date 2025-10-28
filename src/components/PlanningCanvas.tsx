@@ -11,6 +11,7 @@ import {
   useUpdateStoryPosition,
   useSetAnchorStory,
   useDeleteStory,
+  useSession,
 } from '@/hooks/use-session'
 import { cn } from '@/lib/utils'
 import { normalizePosition2D, positionToPercentage } from '@/utils/position'
@@ -21,6 +22,15 @@ import { toast } from 'sonner'
 import { getErrorMessage } from '@/utils/validation'
 import { useDialogStore } from '@/stores/dialog-store'
 import { usePlanningStore } from '@/stores/planning-store'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from './ui/empty'
+import { Spinner } from './ui/spinner'
 
 export interface PlanningCanvasProps {
   className?: string
@@ -35,7 +45,9 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   const updateStoryPositionMutation = useUpdateStoryPosition()
   const setAnchorStoryMutation = useSetAnchorStory()
   const deleteStoryMutation = useDeleteStory()
-  const isEstimateMode = currentSession?.anchorStoryPoints ?? false
+
+  const { data, isLoading } = useSession(currentSession ?? '')
+  const isEstimateMode = data?.anchorStoryPoints ?? false
 
   // Set up droppable area for the entire canvas
   const { setNodeRef, isOver } = useDroppable({
@@ -47,14 +59,6 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
 
   // Get store actions
   const { openEditStoryDialog, openAddStoryDialog } = useDialogStore()
-
-  if (!currentSession) {
-    return (
-      <div className={cn('flex items-center justify-center p-8', className)}>
-        <p className="text-muted-foreground">No active planning session</p>
-      </div>
-    )
-  }
 
   const handleEditStory = (story: Story) => {
     openEditStoryDialog(story)
@@ -75,7 +79,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
 
     try {
       await setAnchorStoryMutation.mutateAsync({
-        sessionId: currentSession.id,
+        sessionId: data!.id,
         storyId: story.id,
       })
     } catch (error) {
@@ -128,8 +132,6 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
         break
     }
   }
-
-  const { stories } = currentSession
 
   return (
     <div
@@ -207,7 +209,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
         </div>
 
         {/* Stories positioned in 2D space */}
-        {stories.map((story, index) => {
+        {data?.stories?.map((story, index) => {
           const percentagePosition = positionToPercentage(story.position)
 
           return (
@@ -234,23 +236,27 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
         })}
 
         {/* Empty state with centered button when no stories */}
-        {stories.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <div className="space-y-2">
-                <p className="text-muted-foreground font-medium">
-                  Mission control ready...
-                </p>
-                <p className="text-sm text-muted-foreground/70">
-                  Deploy your beacon story to start exploring
-                </p>
-              </div>
-              <Button onClick={openAddStoryDialog} size="lg">
-                <SparkleIcon className="h-5 w-5" />
-                Add a beacon
+        {data?.stories?.length === 0 && (
+          <Empty className="h-full">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                {isLoading ? <Spinner /> : <SparkleIcon />}
+              </EmptyMedia>
+              <EmptyTitle>
+                {isLoading ? 'Loading session...' : 'Mission control ready'}
+              </EmptyTitle>
+              <EmptyDescription>
+                {isLoading
+                  ? 'Loading session...'
+                  : 'Deploy your beacon story to start exploring'}
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button disabled={isLoading} onClick={openAddStoryDialog}>
+                Add a beacon story
               </Button>
-            </div>
-          </div>
+            </EmptyContent>
+          </Empty>
         )}
 
         {/* Drop zone indicator when dragging */}

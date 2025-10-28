@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { getErrorMessage } from '@/utils/validation'
 import {
   createSession,
   getSessionByCode,
@@ -29,7 +31,7 @@ export function useSession(code: string) {
       return result.data
     },
     enabled: !!code,
-    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 1 * 1000, // 10 seconds
   })
 }
 
@@ -52,6 +54,10 @@ export function useCreateSession() {
       if (data) {
         queryClient.setQueryData(sessionKeys.byCode(data.code), data)
       }
+      toast.success('Session created')
+    },
+    onError: error => {
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -104,12 +110,15 @@ export function useAddStory() {
 
       // Optimistically update the session
       if (previousSession && typeof previousSession === 'object') {
+        const existingStories = (previousSession as any).stories ?? []
+        const isFirstStory =
+          !Array.isArray(existingStories) || existingStories.length === 0
         const optimisticStory = {
           id: `temp-${Date.now()}`, // Temporary ID
           title: input.title,
           description: input.description || '',
           position: { x: 0, y: 0 }, // Will be set by server
-          isAnchor: false, // Will be determined by server
+          isAnchor: isFirstStory, // True if no existing stories
           createdAt: new Date(),
           updatedAt: new Date(),
         }
@@ -136,6 +145,7 @@ export function useAddStory() {
           context.previousSession
         )
       }
+      toast.error(getErrorMessage(err))
     },
     onSuccess: (response, variables, context, result) => {
       if ('data' in response) {
@@ -144,6 +154,7 @@ export function useAddStory() {
           response.data
         )
       }
+      toast.success('Story added')
     },
   })
 }
@@ -218,10 +229,12 @@ export function useUpdateStory() {
           context.previousSession
         )
       }
+      toast.error(getErrorMessage(err))
     },
     onSuccess: () => {
       // Invalidate to ensure we have the latest data
       queryClient.invalidateQueries({ queryKey: sessionKeys.all })
+      toast.success('Story updated')
     },
   })
 }
@@ -296,6 +309,7 @@ export function useUpdateStoryPosition() {
           context.previousSession
         )
       }
+      toast.error(getErrorMessage(err))
     },
     onSuccess: () => {
       // Invalidate to ensure we have the latest data
@@ -366,10 +380,12 @@ export function useDeleteStory() {
           context.previousSession
         )
       }
+      toast.error(getErrorMessage(err))
     },
     onSuccess: () => {
       // Invalidate to ensure we have the latest data
       queryClient.invalidateQueries({ queryKey: sessionKeys.all })
+      toast.success('Story deleted')
     },
   })
 }
@@ -440,10 +456,12 @@ export function useSetAnchorStory() {
           context.previousSession
         )
       }
+      toast.error(getErrorMessage(err))
     },
     onSuccess: () => {
       // Invalidate to ensure we have the latest data
       queryClient.invalidateQueries({ queryKey: sessionKeys.all })
+      toast.success('Anchor story set')
     },
   })
 }
@@ -513,6 +531,7 @@ export function useSetAnchorStoryPoints() {
     onSuccess: () => {
       // Invalidate to ensure we have the latest data
       queryClient.invalidateQueries({ queryKey: sessionKeys.all })
+      toast.success('Anchor story points updated')
     },
   })
 }

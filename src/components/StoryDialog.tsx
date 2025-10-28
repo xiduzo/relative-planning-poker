@@ -28,6 +28,7 @@ import {
   useAddStory,
   useUpdateStory,
   useDeleteStory,
+  useSession,
 } from '@/hooks/use-session'
 import { usePlanningStore } from '@/stores/planning-store'
 import { STORY_TITLE_MAX_LENGTH, STORY_DESCRIPTION_MAX_LENGTH } from '@/types'
@@ -74,6 +75,7 @@ export function StoryDialog() {
   const updateStoryMutation = useUpdateStory()
   const deleteStoryMutation = useDeleteStory()
 
+  const { data: session } = useSession(currentSession ?? '')
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -101,7 +103,7 @@ export function StoryDialog() {
     try {
       if (dialogMode === 'add' && currentSession) {
         addStoryMutation.mutateAsync({
-          sessionId: currentSession.id,
+          sessionId: session!.id,
           input: {
             description: '',
             ...data,

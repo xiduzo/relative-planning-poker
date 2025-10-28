@@ -4,20 +4,19 @@
  */
 
 import { create } from 'zustand'
-import { PlanningSession } from '@/types'
+import { useSession } from '@/hooks/use-session'
 
 export interface PlanningStore {
   // State
-  currentSession: PlanningSession | null
+  currentSession: string | null
 
   // Session actions (now just setters for UI state)
-  setCurrentSession: (session: PlanningSession | null) => void
+  setCurrentSession: (code: string) => void
   clearSession: () => void
 }
 
-export const usePlanningStore = create<PlanningStore>()(set => ({
+export const usePlanningStore = create<PlanningStore>()((set, get) => ({
   currentSession: null,
-
-  setCurrentSession: session => set({ currentSession: session }),
+  setCurrentSession: code => set({ currentSession: code }),
   clearSession: () => set({ currentSession: null }),
 }))

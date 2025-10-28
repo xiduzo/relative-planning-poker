@@ -201,7 +201,7 @@ function CreateSessionDialog() {
       next() // Already show the next step
       const session = await createSessionMutation.mutateAsync(data.name)
       if (!session) throw new Error('Failed to create session')
-      setCurrentSession(session)
+      setCurrentSession(session.code)
       form.reset()
       router.push(`/session/${session.code}`)
     } catch (error) {
