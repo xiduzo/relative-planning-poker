@@ -1,6 +1,6 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
-import { RocketIcon, SparkleIcon } from 'lucide-react'
+import { RocketIcon } from 'lucide-react'
 
 interface LogoProps {
   className?: string

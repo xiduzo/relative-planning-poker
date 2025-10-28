@@ -1,8 +1,9 @@
 /**
- * Core data models and Zod schemas for Pokernaut
+ * Core app types derived from DB and simple TypeScript interfaces.
+ * Zod validation has been removed; DB constraints enforce integrity.
  */
 
-import { z } from 'zod'
+import type { Session as DbSession, Story as DbStory } from '@/db/schema'
 
 // Constants for validation
 export const POSITION_MIN = -100
@@ -14,182 +15,71 @@ export const SESSION_NAME_MAX_LENGTH = 50
 export const SESSION_CODE_LENGTH = 6
 
 export const FIBONACCI_NUMBERS = [1, 2, 3, 5, 8, 13, 21, 34, 55] as const
-export const FibonacciNumberSchema = z.union([
-  ...FIBONACCI_NUMBERS.map(x => z.literal(x)),
-  z.null(),
-])
+export type FibonacciNumber = (typeof FIBONACCI_NUMBERS)[number]
 
 // 2D Position type for complexity and uncertainty
-export const Position2DSchema = z.object({
-  x: z
-    .number()
-    .min(
-      POSITION_MIN,
-      `X position must be between ${POSITION_MIN} and ${POSITION_MAX}`
-    )
-    .max(
-      POSITION_MAX,
-      `X position must be between ${POSITION_MIN} and ${POSITION_MAX}`
-    ),
-  y: z
-    .number()
-    .min(
-      POSITION_MIN,
-      `Y position must be between ${POSITION_MIN} and ${POSITION_MAX}`
-    )
-    .max(
-      POSITION_MAX,
-      `Y position must be between ${POSITION_MIN} and ${POSITION_MAX}`
-    ),
-})
+export interface Position2D {
+  x: number
+  y: number
+}
 
-// Zod schemas
-export const StorySchema = z.object({
-  id: z.string().min(1, 'Story ID is required'),
-  title: z
-    .string()
-    .trim()
-    .min(1, 'Story title is required')
-    .max(
-      STORY_TITLE_MAX_LENGTH,
-      `Story title must be ${STORY_TITLE_MAX_LENGTH} characters or less`
-    ),
-  description: z
-    .string()
-    .trim()
-    .max(
-      STORY_DESCRIPTION_MAX_LENGTH,
-      `Story description must be ${STORY_DESCRIPTION_MAX_LENGTH} characters or less`
-    ),
-  position: Position2DSchema,
-  isAnchor: z.boolean().default(false),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-})
+// App-facing Story
+export interface Story {
+  id: string
+  title: string
+  description: string
+  position: Position2D
+  isAnchor: boolean
+  createdAt: Date
+  updatedAt: Date
+}
 
-export const ParticipantSchema = z.object({
-  id: z.string().trim().min(1, 'Participant ID is required'),
-  name: z.string().trim().min(1, 'Participant name is required'),
-  color: z.string().trim().min(1, 'Participant color is required'),
-  isActive: z.boolean().default(true),
-  cursor: z
-    .object({
-      x: z.number(),
-      y: z.number(),
-    })
-    .optional(),
-})
+// Participant type (kept as a plain TS interface for future use)
+export interface Participant {
+  id: string
+  name: string
+  color: string
+  isActive: boolean
+  cursor?: { x: number; y: number }
+}
 
-export const PlanningSessionSchema = z
-  .object({
-    name: z
-      .string()
-      .trim()
-      .min(1, 'Session name is required')
-      .max(
-        SESSION_NAME_MAX_LENGTH,
-        `Session name must be ${SESSION_NAME_MAX_LENGTH} characters or less`
-      ),
-    code: z
-      .string()
-      .trim()
-      .min(SESSION_CODE_LENGTH, 'Session code must be 6 characters long')
-      .max(SESSION_CODE_LENGTH, 'Session code must be 6 characters long'),
-    stories: z.array(StorySchema).default([]),
-    anchorStoryId: z.string().nullable().default(null),
-    anchorStoryPoints: FibonacciNumberSchema.nullable().default(null),
-    createdAt: z.date(),
-    lastModified: z.date(),
-  })
-  .refine(
-    data => {
-      // Validate anchor story requirements
-      const anchorStories = data.stories.filter(story => story.isAnchor)
-      if (data.stories.length > 0 && anchorStories.length === 0) {
-        return false
-      }
-      if (anchorStories.length > 1) {
-        return false
-      }
-      return true
-    },
-    {
-      message: 'Session must have exactly one anchor story when stories exist',
-    }
-  )
+// App-facing session
+export interface PlanningSession {
+  id: string
+  name: string
+  code: string
+  stories: Story[]
+  anchorStoryId: string | null
+  anchorStoryPoints: number | null
+  createdAt: Date
+  lastModified: Date
+}
 
-export const ExportDataSchema = z.object({
-  sessionName: z.string(),
-  exportedAt: z.date(),
-  stories: z.array(
-    z.object({
-      title: z.string(),
-      description: z.string(),
-      storyPoints: z.number().nullable(),
-      relativePosition: z.number(),
-    })
-  ),
-  totalStories: z.number().min(0),
-})
+export interface ExportData {
+  sessionName: string
+  exportedAt: Date
+  stories: Array<{
+    title: string
+    description: string
+    storyPoints: number | null
+    relativePosition: number
+  }>
+  totalStories: number
+}
 
 // Input schemas for create/update operations
-export const CreateStoryInputSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1, 'Story title is required')
-    .max(
-      STORY_TITLE_MAX_LENGTH,
-      `Story title must be ${STORY_TITLE_MAX_LENGTH} characters or less`
-    ),
-  description: z
-    .string()
-    .trim()
-    .max(
-      STORY_DESCRIPTION_MAX_LENGTH,
-      `Story description must be ${STORY_DESCRIPTION_MAX_LENGTH} characters or less`
-    ),
-})
-
-export const UpdateStoryInputSchema = z.object({
-  id: z.string().min(1, 'Story ID is required for updates'),
-  title: z
-    .string()
-    .trim()
-    .min(1, 'Story title is required')
-    .max(
-      STORY_TITLE_MAX_LENGTH,
-      `Story title must be ${STORY_TITLE_MAX_LENGTH} characters or less`
-    )
-    .optional(),
-  description: z
-    .string()
-    .trim()
-    .max(
-      STORY_DESCRIPTION_MAX_LENGTH,
-      `Story description must be ${STORY_DESCRIPTION_MAX_LENGTH} characters or less`
-    )
-    .optional(),
-  position: Position2DSchema.optional(),
-})
-
-// TypeScript types inferred from Zod schemas
-export type Position2D = z.infer<typeof Position2DSchema>
-export type Story = z.infer<typeof StorySchema>
-export type Participant = z.infer<typeof ParticipantSchema>
-export type PlanningSession = z.infer<typeof PlanningSessionSchema>
-export type ExportData = z.infer<typeof ExportDataSchema>
-export type CreateStoryInput = z.infer<typeof CreateStoryInputSchema>
-export type UpdateStoryInput = z.infer<typeof UpdateStoryInputSchema>
-export type FibonacciNumber = z.infer<typeof FibonacciNumberSchema>
-
-// Validation result types (keeping these for consistency with existing code)
-export interface ValidationError {
-  field: string
-  message: string
+export interface CreateStoryInput {
+  title: string
+  description: string
 }
 
-export interface ValidationResult {
-  isValid: boolean
-  errors: ValidationError[]
+export interface UpdateStoryInput {
+  id: string
+  title?: string
+  description?: string
+  position?: Position2D
 }
+
+// Re-export DB-inferred types for server layer usage
+export type DatabaseSession = DbSession
+export type DatabaseStory = DbStory

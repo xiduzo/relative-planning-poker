@@ -24,19 +24,23 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { useDialogStore } from '@/stores/dialog-store'
-import { usePlanningStore } from '@/stores/planning-store'
 import {
-  CreateStoryInputSchema,
-  STORY_TITLE_MAX_LENGTH,
-  STORY_DESCRIPTION_MAX_LENGTH,
-} from '@/types'
+  useAddStory,
+  useUpdateStory,
+  useDeleteStory,
+} from '@/hooks/use-session'
+import { usePlanningStore } from '@/stores/planning-store'
+import { STORY_TITLE_MAX_LENGTH, STORY_DESCRIPTION_MAX_LENGTH } from '@/types'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getRandomItem } from '@/utils/array'
 import { getErrorMessage } from '@/utils/validation'
+import { useDialogStore } from '@/stores'
 
-const formSchema = CreateStoryInputSchema
+const formSchema = z.object({
+  title: z.string().min(3),
+  description: z.string().optional(),
+})
 
 type FormData = z.infer<typeof formSchema>
 
@@ -65,7 +69,10 @@ const descriptionPlaceholders = [
 export function StoryDialog() {
   const { isStoryDialogOpen, dialogMode, storyToEdit, closeStoryDialog } =
     useDialogStore()
-  const { addStory, updateStory, deleteStory } = usePlanningStore()
+  const { currentSession } = usePlanningStore()
+  const addStoryMutation = useAddStory()
+  const updateStoryMutation = useUpdateStory()
+  const deleteStoryMutation = useDeleteStory()
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -92,27 +99,37 @@ export function StoryDialog() {
 
   const onSubmit = (data: FormData) => {
     try {
-      if (dialogMode === 'add') {
-        addStory(data)
+      if (dialogMode === 'add' && currentSession) {
+        addStoryMutation.mutateAsync({
+          sessionId: currentSession.id,
+          input: {
+            description: '',
+            ...data,
+          },
+        })
       } else if (dialogMode === 'edit' && storyToEdit) {
-        updateStory(storyToEdit.id, data)
+        updateStoryMutation.mutateAsync({
+          storyId: storyToEdit.id,
+          updates: data,
+        })
       }
       form.reset()
       closeStoryDialog()
     } catch (error) {
+      console.error(error)
       toast.error('Failed to save story', {
         description: getErrorMessage(error),
       })
     }
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (dialogMode === 'edit' && storyToEdit) {
       try {
-        deleteStory(storyToEdit.id)
+        await deleteStoryMutation.mutateAsync(storyToEdit.id)
         closeStoryDialog()
       } catch (error) {
-        // console.error('Failed to delete story:', error)
+        console.error(error)
         toast.error('Failed to delete story')
       }
     }
@@ -123,14 +140,14 @@ export function StoryDialog() {
     closeStoryDialog()
   }
 
-  const titlePlaceholder = useMemo(
-    () => getRandomItem(titlePlaceholders),
-    [isStoryDialogOpen]
-  )
-  const descriptionPlaceholder = useMemo(
-    () => getRandomItem(descriptionPlaceholders),
-    [isStoryDialogOpen]
-  )
+  const titlePlaceholder = useMemo(() => {
+    if (isStoryDialogOpen) return getRandomItem(titlePlaceholders)
+    return ''
+  }, [isStoryDialogOpen])
+  const descriptionPlaceholder = useMemo(() => {
+    if (isStoryDialogOpen) return getRandomItem(descriptionPlaceholders)
+    return ''
+  }, [isStoryDialogOpen])
 
   const isEditMode = dialogMode === 'edit'
   const dialogTitle = isEditMode ? 'Edit story' : 'Add new story'
@@ -201,16 +218,28 @@ export function StoryDialog() {
                   variant="destructive"
                   onClick={handleDelete}
                   className="gap-2"
+                  disabled={deleteStoryMutation.isPending}
                 >
                   <Trash2 className="w-4 h-4" />
-                  Delete
+                  {deleteStoryMutation.isPending ? 'Deleting...' : 'Delete'}
                 </Button>
               )}
               <Button type="button" variant="outline" onClick={handleCancel}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Saving...' : submitButtonText}
+              <Button
+                type="submit"
+                disabled={
+                  form.formState.isSubmitting ||
+                  addStoryMutation.isPending ||
+                  updateStoryMutation.isPending
+                }
+              >
+                {form.formState.isSubmitting ||
+                addStoryMutation.isPending ||
+                updateStoryMutation.isPending
+                  ? 'Saving...'
+                  : submitButtonText}
               </Button>
             </DialogFooter>
           </form>

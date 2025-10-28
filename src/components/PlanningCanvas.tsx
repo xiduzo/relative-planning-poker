@@ -7,16 +7,20 @@
 import React from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { StoryCard } from './StoryCard'
-import { usePlanningStore } from '@/stores/planning-store'
-import { useDialogStore } from '@/stores/dialog-store'
+import {
+  useUpdateStoryPosition,
+  useSetAnchorStory,
+  useDeleteStory,
+} from '@/hooks/use-session'
 import { cn } from '@/lib/utils'
 import { normalizePosition2D, positionToPercentage } from '@/utils/position'
 import { Button } from './ui/button'
-import { AnchorIcon, Plus, SparkleIcon } from 'lucide-react'
+import { SparkleIcon } from 'lucide-react'
 import type { Story } from '@/types'
-import { Badge } from './ui/badge'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/utils/validation'
+import { useDialogStore } from '@/stores/dialog-store'
+import { usePlanningStore } from '@/stores/planning-store'
 
 export interface PlanningCanvasProps {
   className?: string
@@ -28,9 +32,9 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   onStoryDoubleClick,
 }) => {
   const currentSession = usePlanningStore(state => state.currentSession)
-  const updateStoryPosition = usePlanningStore(
-    state => state.updateStoryPosition
-  )
+  const updateStoryPositionMutation = useUpdateStoryPosition()
+  const setAnchorStoryMutation = useSetAnchorStory()
+  const deleteStoryMutation = useDeleteStory()
   const isEstimateMode = currentSession?.anchorStoryPoints ?? false
 
   // Set up droppable area for the entire canvas
@@ -42,8 +46,7 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   })
 
   // Get store actions
-  const { setAnchorStory, deleteStory } = usePlanningStore()
-  const { openEditStoryDialog } = useDialogStore()
+  const { openEditStoryDialog, openAddStoryDialog } = useDialogStore()
 
   if (!currentSession) {
     return (
@@ -57,9 +60,9 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
     openEditStoryDialog(story)
   }
 
-  const handleDeleteStory = (story: Story) => {
+  const handleDeleteStory = async (story: Story) => {
     try {
-      deleteStory(story.id)
+      await deleteStoryMutation.mutateAsync(story.id)
     } catch (error) {
       toast.error('Failed to delete story', {
         description: getErrorMessage(error),
@@ -67,9 +70,14 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
     }
   }
 
-  const handleMakeAnchor = (story: Story) => {
+  const handleMakeAnchor = async (story: Story) => {
+    if (!currentSession) return
+
     try {
-      setAnchorStory(story.id)
+      await setAnchorStoryMutation.mutateAsync({
+        sessionId: currentSession.id,
+        storyId: story.id,
+      })
     } catch (error) {
       toast.error('Failed to set beacon story', {
         description: getErrorMessage(error),
@@ -101,7 +109,10 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
     }
 
     const newPosition = normalizePosition2D({ x: newX, y: newY })
-    updateStoryPosition(story.id, newPosition)
+    updateStoryPositionMutation.mutate({
+      storyId: story.id,
+      position: newPosition,
+    })
   }
 
   function handleStoryKey(event: KeyboardEvent, story: Story) {
@@ -119,7 +130,6 @@ export const PlanningCanvas: React.FC<PlanningCanvasProps> = ({
   }
 
   const { stories } = currentSession
-  const { openAddStoryDialog } = useDialogStore()
 
   return (
     <div

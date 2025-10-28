@@ -1,18 +1,15 @@
 'use client'
 
 import { defineStepper } from '../stepper'
-import {
-  AnchorIcon,
-  RectangleEllipsisIcon,
-  SparkleIcon,
-  Tally5Icon,
-} from 'lucide-react'
+import { RectangleEllipsisIcon, SparkleIcon, Tally5Icon } from 'lucide-react'
 
 import { Session, SessionActions } from './session'
 import { Estimate, EstimateActions } from './estimate'
 import { Plan, PlanActions } from './plan'
 import { useParams } from 'next/navigation'
 import { useDialogStore, usePlanningStore } from '@/stores'
+import { useSession } from '@/hooks/use-session'
+import { useEffect } from 'react'
 
 const { Stepper, useStepper, steps, utils } = defineStepper(
   {
@@ -39,10 +36,45 @@ export { useStepper, steps, utils }
 
 export function MainStepper() {
   const { code } = useParams<{ code: string }>()
+  const { currentSession, setCurrentSession } = usePlanningStore()
 
-  const { currentSession } = usePlanningStore()
+  // Load session data when code is provided
+  const { data: sessionData, isLoading, error } = useSession(code || '')
+
+  // Update store when session data changes
+  useEffect(() => {
+    if (sessionData) {
+      setCurrentSession(sessionData)
+    }
+  }, [sessionData, setCurrentSession])
 
   const anchorStoryPoints = currentSession?.anchorStoryPoints
+
+  // Show loading state while fetching session
+  if (code && isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading session...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state if session not found
+  if (code && error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold">Session not found</h2>
+          <p className="text-muted-foreground">
+            The session code &quot;{code}&quot; does not exist.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -95,7 +127,7 @@ function Panel() {
 function Controls() {
   const { switch: stepSwitch, next, prev } = useStepper()
   const { openAddStoryDialog } = useDialogStore()
-  const { currentSession, setAnchorStoryPoints } = usePlanningStore()
+  const { currentSession } = usePlanningStore()
 
   return (
     <Stepper.Controls className="flex items-center justify-center">
@@ -111,8 +143,8 @@ function Controls() {
         'step-3': () => (
           <EstimateActions
             prev={prev}
-            anchorStoryPoints={currentSession?.anchorStoryPoints}
-            setAnchorStoryPoints={setAnchorStoryPoints}
+            anchorStoryPoints={currentSession?.anchorStoryPoints as null}
+            sessionId={currentSession?.id}
           />
         ),
       })}

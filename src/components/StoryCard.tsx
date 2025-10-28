@@ -12,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardAction,
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -22,12 +21,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import {
-  BadgeQuestionMarkIcon,
-  EditIcon,
-  SparkleIcon,
-  Trash2Icon,
-} from 'lucide-react'
+import { EditIcon, SparkleIcon, Trash2Icon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { calculatePositionScore, calculateStoryPoints } from '@/utils/position'
 import type { Story } from '@/types'
@@ -134,8 +128,8 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   }, [story.position])
 
   const storyPoints = useMemo(() => {
-    return calculateStoryPoints(story, anchorStoryPoints)
-  }, [anchorStoryPoints, currentSession, story])
+    return calculateStoryPoints(story, anchorStoryPoints as null)
+  }, [anchorStoryPoints, story])
 
   const cardContent = (
     <Card

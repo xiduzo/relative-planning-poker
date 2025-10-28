@@ -30,28 +30,19 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { usePlanningStore } from '@/stores/planning-store'
-import { generateSessionId, sessionIdToReadableFormat } from '@/utils/id'
-import { PlanningSessionSchema } from '@/types'
 import { useStepper } from './main-stepper'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/utils'
-import {
-  Card,
-  CardAction,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../ui/card'
 import { useRouter } from 'next/navigation'
 import { getRandomItem } from '@/utils/array'
+import { useCreateSession } from '@/hooks/use-session'
 
-const joinSessionSchema = PlanningSessionSchema.pick({
-  code: true,
+const joinSessionSchema = z.object({
+  code: z.string().min(6).max(6),
 })
 type JoinSessionForm = z.infer<typeof joinSessionSchema>
 
 export function Session() {
-  const { loadSessionByCode, sessions } = usePlanningStore()
   const router = useRouter()
   const form = useForm<JoinSessionForm>({
     resolver: zodResolver(joinSessionSchema),
@@ -61,15 +52,8 @@ export function Session() {
   })
 
   const handleJoinSession = (data: JoinSessionForm) => {
-    try {
-      loadSessionByCode(data.code)
-      // navigate to session route
-      router.push(`/session/${data.code}`)
-    } catch (error) {
-      toast.error('Failed to join session', {
-        description: getErrorMessage(error),
-      })
-    }
+    // Navigate to session route - the session will be loaded there
+    router.push(`/session/${data.code}`)
   }
 
   return (
@@ -164,44 +148,19 @@ export function Session() {
 
       <section className="w-full grid grid-cols-6 gap-4">
         <h2 className="text-lg text-start col-span-6 font-bold mt-12">
-          Your recent sessions
+          Recent sessions
         </h2>
-        {Object.values(sessions)
-          .sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          )
-          .slice(0, 6)
-          .map(session => (
-            <Card
-              key={session.code}
-              className="lg:col-span-2 md:col-span-3 col-span-6"
-            >
-              <CardHeader>
-                <CardTitle>{session.name}</CardTitle>
-                <CardDescription>
-                  Session code: {sessionIdToReadableFormat(session.code)}
-                </CardDescription>
-                <CardAction>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => handleJoinSession({ code: session.code })}
-                  >
-                    Go to session
-                  </Button>
-                </CardAction>
-              </CardHeader>
-            </Card>
-          ))}
+        <p className="text-muted-foreground col-span-6">
+          Sessions are now stored in the database. Use the session code to join
+          any session.
+        </p>
       </section>
     </div>
   )
 }
 
-const createSessionSchema = PlanningSessionSchema.pick({
-  name: true,
+const createSessionSchema = z.object({
+  name: z.string().min(3),
 })
 type CreateSessionForm = z.infer<typeof createSessionSchema>
 
@@ -222,7 +181,8 @@ function CreateSessionDialog() {
   const [isCreating, setIsCreating] = useState(false)
   const { next, prev } = useStepper()
   const router = useRouter()
-  const { createSession } = usePlanningStore()
+  const { setCurrentSession } = usePlanningStore()
+  const createSessionMutation = useCreateSession()
 
   const form = useForm<CreateSessionForm>({
     resolver: zodResolver(createSessionSchema),
@@ -231,18 +191,19 @@ function CreateSessionDialog() {
     },
   })
 
-  const sessionNamePlaceholder = useMemo(
-    () => getRandomItem(sessionNamePlaceholders),
-    [isCreating]
-  )
+  const sessionNamePlaceholder = useMemo(() => {
+    if (isCreating) return getRandomItem(sessionNamePlaceholders)
+    return ''
+  }, [isCreating])
 
-  const handleCreateSession = (data: CreateSessionForm) => {
-    const sessionCode = generateSessionId()
+  const handleCreateSession = async (data: CreateSessionForm) => {
     try {
       next() // Already show the next step
-      createSession(data.name, sessionCode)
+      const session = await createSessionMutation.mutateAsync(data.name)
+      if (!session) throw new Error('Failed to create session')
+      setCurrentSession(session)
       form.reset()
-      router.push(`/session/${sessionCode}`)
+      router.push(`/session/${session.code}`)
     } catch (error) {
       prev()
       toast.error('Failed to create session', {
@@ -302,13 +263,20 @@ function CreateSessionDialog() {
             />
 
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
-                Create session
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={createSessionMutation.isPending}
+              >
+                {createSessionMutation.isPending
+                  ? 'Creating...'
+                  : 'Create session'}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsCreating(false)}
+                disabled={createSessionMutation.isPending}
               >
                 Cancel
               </Button>

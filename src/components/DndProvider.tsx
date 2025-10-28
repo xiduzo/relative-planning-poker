@@ -4,7 +4,7 @@
 
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -17,15 +17,10 @@ import {
   DragOverEvent,
   DragMoveEvent,
 } from '@dnd-kit/core'
+import { useUpdateStoryPosition } from '@/hooks/use-session'
+import { POSITION_RANGE, type Position2D, type Story } from '@/types'
+import { ANCHOR_POSITION } from '@/utils'
 import { StoryCard } from './StoryCard'
-import { usePlanningStore } from '@/stores/planning-store'
-import {
-  POSITION_MIN,
-  POSITION_RANGE,
-  type Position2D,
-  type Story,
-} from '@/types'
-import { ANCHOR_POSITION, normalizePosition2D } from '@/utils'
 
 interface DndProviderProps {
   children: React.ReactNode
@@ -37,9 +32,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   const previousDragDelta = useRef<Position2D>(ANCHOR_POSITION)
   const initialActiveStoryPosition = useRef<Position2D>(ANCHOR_POSITION)
 
-  const updateStoryPosition = usePlanningStore(
-    state => state.updateStoryPosition
-  )
+  const updateStoryPositionMutation = useUpdateStoryPosition()
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -117,17 +110,21 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
     const story = active.data.current?.story as Story
     if (!story) return
 
-    updateStoryPosition(
-      story.id,
-      calculateNewPosition(event.delta, story.position)
-    )
+    const newPosition = calculateNewPosition(event.delta, story.position)
+    updateStoryPositionMutation.mutate({
+      storyId: story.id,
+      position: newPosition,
+    })
     setStoryPosition(null)
   }
 
   const handleDragCancel = () => {
     // Revert to original position if we have an active story and original position
     if (activeStory) {
-      updateStoryPosition(activeStory.id, activeStory.position)
+      updateStoryPositionMutation.mutate({
+        storyId: activeStory.id,
+        position: activeStory.position,
+      })
     }
 
     setStoryPosition(null)

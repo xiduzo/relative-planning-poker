@@ -36,6 +36,7 @@ import {
   FormControl,
   FormMessage,
 } from '../ui/form'
+import { useSetAnchorStoryPoints } from '@/hooks/use-session'
 import { cn } from '@/lib/utils'
 
 export function Estimate() {
@@ -57,9 +58,10 @@ type EstimateForm = z.infer<typeof schema>
 export function EstimateActions(props: {
   prev: () => void
   anchorStoryPoints?: FibonacciNumber | null
-  setAnchorStoryPoints: (points: FibonacciNumber | null) => void
+  sessionId?: string
 }) {
   const [drawerOpen, setDrawerOpen] = useState(!props.anchorStoryPoints)
+  const setAnchorStoryPointsMutation = useSetAnchorStoryPoints()
 
   const form = useForm<EstimateForm>({
     resolver: zodResolver(schema),
@@ -68,14 +70,43 @@ export function EstimateActions(props: {
     },
   })
 
+  const handleSetAnchorPoints = async (points: FibonacciNumber) => {
+    if (!props.sessionId) return
+
+    try {
+      await setAnchorStoryPointsMutation.mutateAsync({
+        sessionId: props.sessionId,
+        points,
+      })
+      setDrawerOpen(false)
+      form.reset()
+    } catch (error) {
+      console.error(error)
+      // Error handling is done by TanStack Query
+    }
+  }
+
+  const handleBackToPlan = async () => {
+    if (!props.sessionId) return
+
+    try {
+      await setAnchorStoryPointsMutation.mutateAsync({
+        sessionId: props.sessionId,
+        points: null,
+      })
+      props.prev()
+    } catch (error) {
+      console.error(error)
+      // Error handling is done by TanStack Query
+    }
+  }
+
   return (
     <section className="flex items-center justify-center gap-4">
       <Button
         variant="outline"
-        onClick={() => {
-          props.setAnchorStoryPoints(null)
-          props.prev()
-        }}
+        onClick={handleBackToPlan}
+        disabled={setAnchorStoryPointsMutation.isPending}
       >
         <ArrowLeftIcon className="w-4 h-4" />
         Back to the plan
@@ -85,8 +116,8 @@ export function EstimateActions(props: {
           <Button
             onClick={() => {
               form.reset()
-              props.setAnchorStoryPoints(null)
             }}
+            disabled={setAnchorStoryPointsMutation.isPending}
           >
             <Tally5Icon className="w-4 h-4" />
             Estimate beacon
@@ -120,9 +151,7 @@ export function EstimateActions(props: {
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(data => {
-                setDrawerOpen(false)
-                props.setAnchorStoryPoints(data.anchorStoryPoints)
-                form.reset()
+                handleSetAnchorPoints(data.anchorStoryPoints)
               })}
               className="container mx-auto flex flex-col items-center justify-center"
             >
@@ -173,10 +202,15 @@ export function EstimateActions(props: {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={!form.formState.isValid}
+                  disabled={
+                    !form.formState.isValid ||
+                    setAnchorStoryPointsMutation.isPending
+                  }
                 >
                   <BookCheckIcon className="w-4 h-4" />
-                  Estimate
+                  {setAnchorStoryPointsMutation.isPending
+                    ? 'Estimating...'
+                    : 'Estimate'}
                 </Button>
               </DrawerFooter>
             </form>

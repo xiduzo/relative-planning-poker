@@ -19,7 +19,7 @@ export function generateId(): string {
  * Generates a short, human-readable ID for session sharing
  * Uses uppercase letters and numbers, avoiding confusing characters
  */
-export function generateSessionId(): string {
+export function generateSessionCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // Excludes I, O, 0, 1
   let result = ''
 
